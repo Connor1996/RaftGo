@@ -118,7 +118,7 @@ reduce(String key, List values):
 
 记录重要元数据的改变，不仅用于持久化还用于操作定序
 
-在本地和远程持久化后才能应答客户端
+在本地和远程操作日志持久化后才能应答客户端
 
 `master`每次通过操作日志恢复文件系统的状态，为了减少启动时间就必须减小日志大小，所以在日志超过一定大小时就建立`checkpoint（类似压缩的B-tree，可以直接映射到内存上从而达到快速恢复）`，而日志只需记录`checkpoint`之后的操作
 
@@ -126,9 +126,101 @@ reduce(String key, List values):
 
 #### 一致性模型
 
+![](./doc/gfs-file_region_state_after_mutation.png)
+
+上图为在写操作或附加操作之后区域的状态
+
+`consitent` ：所有的`client`看到的数据都一样，无论读哪一份拷贝
+
+`defined` ：区域是`consistent`的，并且`client`能看到实际的数据改变（**write操作是由用户指定offset，那在并发的情况下，就有可能导致用户采用它觉得合理的offset，而实际上会导致并发写入的数据相互混合，这样我们就无从得知哪些操作分别写入了哪部分数据**）
 
 
-​                             
 
-​                                                                                                   
+#### 系统交互
 
+设计目标：最小化`master`的参与
+
+##### lease and mutation order
+
+`master`将租约（lease）授予一个`chunck`的副本，使其为主副本。在对于`chunck`改变数据时，主副本挑选一个顺序执行改变，其他副本按照主副本的顺序改变，以保持一致性
+
+租约初始值为60s，过期无效，在`HeartBeat`信息中可以续约
+
+`master`在某种情况下可能提前撤销租约（e.g. when the master wants to disable mutations on a file that is being renamed）
+
+
+
+```
+未完待续。。。
+```
+
+
+
+### Fault-Tolerant Virtual Machines
+
+简单的说，就是使用虚拟机技术实现GFS部分中对`master`的远程备份服务器
+
+通过从一个初始状态开始，经过相同的输入顺序确保主备服务器达到同步，但在同步时，对于**不确定操作**（如读取时钟，异常）就必须发送额外的信息。而这些额外信息在虚拟机上可以非常方便的获取到
+
+缺点：不支持多处理器（性能表现差劲，因为对于共享内存的访问几乎都是不确定操作）
+
+主VM将所有接受到的输入通过网络连接——`logging channel`发送给备份VM
+
+
+
+#### 基本设计
+
+##### Deterministic Replay Implentation
+
+挑战：
+
+1.  正确地获取所有输入和不确定性
+2.  正确应用输入和不确定性操作到备份虚拟VM上
+3.  不降低性能
+
+记录所有操作到日志中。对于不确定操作，还将某一指令引起的事件记录下来，在重现时也产生该事件在对应的指令。
+
+##### FT 协议
+
+将操作记录不存储在硬盘里，而是直接通过`logging channel`发送给备份VM
+
+```
+Output Rule:
+	the primary VM may not send an output to the external world, until the backup VM has received and acknowledged the log entry associated with the operation prducing the output.（只是延迟的了输出，但并未停止VM的继续执行）
+```
+
+##### 错误检测
+
+通过UDP心跳以及监控`logging channel`上的流量，判断服务器是否崩溃
+
+但是在备份服务器没有收到心跳包时，有可能是主服务器崩溃，也有可能是网络错误。在网络错误时，主服务器实际还是在运行的，这时备份服务器的上线（`go live`）就会导致数据冲突（该问题称为`Split-Brain problem`）。
+
+为了解决该问题，在上线之前，在共享存储上执行`test-and-set`操作，若执行失败，则自杀。若无法访问共享存储，则不断重试直到可以访问。
+
+
+
+#### Practical Implementation 
+
+##### 启动重启FT VMs
+
+`VMware VMotion`允许将正在运行的VM从一个服务器迁移到另外一个服务器。经过适当的修改，使得`FT VMotion`克隆VM到远程服务器而不是迁移，通过此就可以启动一个同主服务器状态相同的备份服务器。
+
+当主服务器崩溃时，原先的备份服务器就会上线成为主服务器，而此时需要再启动一个新的备份服务器。`clustering service`通过资源利用率和其他限制条件决定在哪个服务器上建立备份VM。
+
+##### 管理Logging Channel
+
+虚拟机在`logging channel`两端维护一个缓冲队列，主服务器发送，备份服务器`log buffer`接受到后返回`ACK`。通过此可以使得`VMware FT`根据`Output Rule`知道什么时候发送被延迟的输出
+
+当在主服务器的`log buffer`满时，它必须等待直到不满，这就会影响客户端。因此我们需要最小化主服务器`log buffer`满的可能性：
+
+-   备份服务器处理速度太慢
+-   使用额外机制降低主服务器的运行速度
+
+##### Operation on FT VMs
+
+多数操作需要通过`logging channel`保持主备的同步，比如主服务器关机，备份服务器也需要停止；主服务器资源管理变动，备份服务器也需要相应的变动
+
+可以独立执行与主服务器或备份服务器的操作只有`VMotion`：
+
+-   主服务器的VMotion：需要备份服务器切断与原主服务器的连接，建立与新主服务器的连接
+-   备份服务器的VMotion：同上，还需要主服务器暂停IO
