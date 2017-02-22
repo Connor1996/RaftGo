@@ -14,9 +14,7 @@
 
 
 
-## Week 1
-
-### MapReduce
+## MapReduce(Week 1)
 
 ​	`键值对 <key, value>`
 
@@ -26,6 +24,7 @@
 
 ```C++
 map(String key, String value):
+
 	// key: document name
 	// value: document contents
 	for each word w in value:
@@ -40,7 +39,7 @@ reduce(String key, List values):
 	Emit(AsString(result));
 ```
 
-#### 执行步骤
+### 执行步骤
 
 ![](./doc/mapreduce-execution_overview.png)
 
@@ -55,20 +54,18 @@ reduce(String key, List values):
 
 
 
-### PRC
+## PRC(Week 1)
 
 ​	参阅Go的[RPC](https://golang.org/pkg/net/rpc/)文档以及Effective Go
 
 
 
 
-## Week2
-
-### GFS(Google File System)
+## GFS(Google File System)(Week 2)
 
 ![](./doc/gfs-architecture.png)
 
-#### 结构
+### 结构
 
 -   `master`
     -   维护整个文件系统的元数据
@@ -84,7 +81,7 @@ reduce(String key, List values):
 
 
 
-#### 块大小
+### 块大小
 
 使用大文件块大小——64MB，使用lazy space allocation解决内部碎片问题
 
@@ -102,7 +99,7 @@ reduce(String key, List values):
 
 
 
-#### 元数据
+### 元数据
 
 1.  the file and chunk namespaces
 2.  the maping from files to chuncks
@@ -114,7 +111,7 @@ reduce(String key, List values):
 
 
 
-####操作日志
+###操作日志
 
 记录重要元数据的改变，不仅用于持久化还用于操作定序
 
@@ -124,7 +121,7 @@ reduce(String key, List values):
 
 
 
-#### 一致性模型
+### 一致性模型
 
 ![](./doc/gfs-file_region_state_after_mutation.png)
 
@@ -136,11 +133,11 @@ reduce(String key, List values):
 
 
 
-#### 系统交互
+### 系统交互
 
 设计目标：最小化`master`的参与
 
-##### lease and mutation order
+#### lease and mutation order
 
 `master`将租约（lease）授予一个`chunck`的副本，使其为主副本。在对于`chunck`改变数据时，主副本挑选一个顺序执行改变，其他副本按照主副本的顺序改变，以保持一致性
 
@@ -156,7 +153,7 @@ reduce(String key, List values):
 
 
 
-### Fault-Tolerant Virtual Machines
+## Fault-Tolerant Virtual Machines(Week 2)
 
 简单的说，就是使用虚拟机技术实现GFS部分中对`master`的远程备份服务器
 
@@ -168,9 +165,9 @@ reduce(String key, List values):
 
 
 
-#### 基本设计
+### 基本设计
 
-##### Deterministic Replay Implentation
+#### Deterministic Replay Implentation
 
 挑战：
 
@@ -180,7 +177,7 @@ reduce(String key, List values):
 
 记录所有操作到日志中。对于不确定操作，还将某一指令引起的事件记录下来，在重现时也产生该事件在对应的指令。
 
-##### FT 协议
+#### FT 协议
 
 将操作记录不存储在硬盘里，而是直接通过`logging channel`发送给备份VM
 
@@ -189,7 +186,7 @@ Output Rule:
 	the primary VM may not send an output to the external world, until the backup VM has received and acknowledged the log entry associated with the operation prducing the output.（只是延迟的了输出，但并未停止VM的继续执行）
 ```
 
-##### 错误检测
+#### 错误检测
 
 通过UDP心跳以及监控`logging channel`上的流量，判断服务器是否崩溃
 
@@ -199,15 +196,15 @@ Output Rule:
 
 
 
-#### Practical Implementation 
+### Practical Implementation 
 
-##### 启动重启FT VMs
+#### 启动重启FT VMs
 
 `VMware VMotion`允许将正在运行的VM从一个服务器迁移到另外一个服务器。经过适当的修改，使得`FT VMotion`克隆VM到远程服务器而不是迁移，通过此就可以启动一个同主服务器状态相同的备份服务器。
 
 当主服务器崩溃时，原先的备份服务器就会上线成为主服务器，而此时需要再启动一个新的备份服务器。`clustering service`通过资源利用率和其他限制条件决定在哪个服务器上建立备份VM。
 
-##### 管理Logging Channel
+#### 管理Logging Channel
 
 虚拟机在`logging channel`两端维护一个缓冲队列，主服务器发送，备份服务器`log buffer`接受到后返回`ACK`。通过此可以使得`VMware FT`根据`Output Rule`知道什么时候发送被延迟的输出
 
@@ -216,7 +213,7 @@ Output Rule:
 -   备份服务器处理速度太慢
 -   使用额外机制降低主服务器的运行速度
 
-##### Operation on FT VMs
+#### Operation on FT VMs
 
 多数操作需要通过`logging channel`保持主备的同步，比如主服务器关机，备份服务器也需要停止；主服务器资源管理变动，备份服务器也需要相应的变动
 
@@ -224,3 +221,68 @@ Output Rule:
 
 -   主服务器的VMotion：需要备份服务器切断与原主服务器的连接，建立与新主服务器的连接
 -   备份服务器的VMotion：同上，还需要主服务器暂停IO
+
+#### Disk IO实现细节
+
+-   磁盘操作同时访问同一个磁盘位置或内存位置，会引起不确定性  **解决：检测竞争，使其按顺序执行**
+-   磁盘操作会跟VM的应用对内存的操作冲突 **解决：1.MMU内存保护（代价昂贵） 2.bounce buffer( a temporary buffer that has the same size as the memory being accessed by a disk operation) 所有磁盘读写都对bounce buffer进行**
+-   当备份服务器接替原主服务器，它并不确定之前的磁盘IO是否成功完成 **解决： 在备份服务器上线过程中，重新提交那些IO请求（即使它们已经执行完成）**
+
+#### Network IO实现细节
+
+-   关闭VM的 the asynchronous network optimizations，否则会引起不确定性，这就需要我们自己优化网络性能：
+    -   implement clustering optimizations to reduce VM traps and interrupts
+    -   reduce the delay for transmitted packets（**key：reduce the time required to send a log message to the backup and get an acknowledgement**）注册函数到TCP协议栈，使得当收到TCP数据时自动发送ACK
+        -   quickly handle any incoming log messages on the backup and any acknowledgments received by the primary 
+        -   when the primary VM enqueues a packet to be transmitted, we force an immediate log flush of the associated output log entry
+
+
+
+
+### 替换性设计
+
+-   使用非共享磁盘（距离较远时）：主备VM不使用共享磁盘，而是各自使用独立磁盘，在使用一套机制保证磁盘之间同步
+-   在备份VM上执行磁盘操作：之前是主VM执行操作，将数据通过`logging channel`传送过去。可以不同传送数据，而是让备份VM执行相同的操作
+
+
+
+
+## Raft(Week 3)
+
+保证`replicated log`一致性的算法，相比与`Paxos`算法它更容易理解
+
+
+
+### 算法
+
+`Raft`将一致性问题分解为三个子问题：
+
+-   领导选举（leader election）
+-   日志复制（log replication）
+-   安全问题（safety）
+
+#### 基础概念
+
+![](./doc/raft-server_state.png)
+
+所有服务器只有三种状态：
+
+-   `leader` ：管理着`replicated log`，它从`client`接受`log entries`并把这些`log entries`复制到其他服务器，同时告诉这些服务器什么时间可以安全的把这些`log entries`应用到他们的`state machine`
+-   `follower` ：被动，只回应来自`leader`和`candidates`的请求，当`client`与`follower`联系，它直接重定位到`leader`
+-   `candidate` ：`leader`的候选者
+
+
+
+![](./doc/raft-term.png)
+
+时间被分割成为无数个任意长度的`term`：
+
+-   以连续的整数标号
+-   每个`term`都是以`election`开头
+-   在某些情况下，选举平票则此`term`没有选择出`leader`，很快就快进入一段新的`term`
+-   每个服务器都会存储着一个`current term `，随着时间递增，在每一次与其他服务器通讯时都会交换`current term`进行比较
+    -   如果一个服务器的比另一个服务器的小，则更新为较大值
+    -   如果一个`leader`或者`candidate`发现其的值过期，则立马转变状态为`follower`
+    -   如果一个服务器收到的请求有着过期的`term`，则拒绝请求
+
+三种PRC
