@@ -285,4 +285,89 @@ Output Rule:
     -   如果一个`leader`或者`candidate`发现其的值过期，则立马转变状态为`follower`
     -   如果一个服务器收到的请求有着过期的`term`，则拒绝请求
 
-三种PRC
+三种RPC
+
+-   RequestVote
+-   AppendEntries
+-   TransferSnapshot
+
+#### 领导选举
+
+服务器启动时均为`follower`，只要它们能收到来自`leader`或`candidate`的心跳包就一直保持此状态
+
+`leader`周期性发送心跳包（AppendEntries RPC 但不携带`log entries`）以保持自己的权威
+
+**election timeout ：如果一个`follower`一段时间没有收到信息，则它会认为没有可行的`leader`进而发起选举**
+
+进入选举后，该`follower`增加它的`current term`并进去`candidate`状态，同时向集群中各个服务器发送`RequestVote RPC`，若获得大多数服务器的投票则成为`leader`（每个服务器在一个`term`中最多只能投一次票）
+
+在等待投票的过程中，若`candidate`收到来自其他服务器的`AppendEntries RPC`则要比较下`current term`大小
+
+-   若相同，则认为是合法的`leader`（其他某个服务器竞选成功），故而退回`follower`状态
+-   若该`candidate`的`current term`大于RPC中的，则拒绝该RPC继续保持着`candidate`状态
+
+最后选举的结果可能是平票（很多服务器同时变成候选者，因此没有任何一个候选者能获得大多数的票数），则引入`randomized election timeout`机制：
+
+-   election timeouts are chosen randomly from a fixed interval
+-   each candidate restart its randomized election timeout at the start of an election and it waits for that timeout to elapse before starting the next election
+
+#### 日志复制
+
+`leader`收到来自`client`的命令，将命令追加到日志中，之后使用`Append Entries RPC`使其他服务器复制这个`log entry`。当确保所有服务器都安全地复制了（若没有，则无限重复RPC直到成功，即使`leader`已经向`client`返回了结果），则`leader`会将命令应用于自己的`state machine`并将结果返回给`client`。
+
+每个`log entry`除了记录命令还会记录着`term number`以及它在日志中所在的`index`
+
+**committed：the leader decides when it is safe to apply a log entry to the state machines; such an entry is called `committed`**
+
+当`leader`在当前`term`把一个`log entry`复制到集群中的大多数服务器上，则说该日志条目是`committed`
+
+`leader`会记录下`committed`的最高的index，并把此index放在`AppendEntries RPCs`中使得其他服务器得知。当`follower`知道一个`log entry`是`committed`就会把该日志条目应用于自己的`state machine`
+
+当发送`AppendEntires RPC`，同时还会发送在新日志条目之前那个条目的`index`和`term`，`follower`验证自己是否有个条目有相同的`index`和`term`，若没有说明不一致则拒绝新条目
+
+像上面所说的不一致，是`leader`崩溃导致的（the old leader may not have fully replicated all of the entries in its log），所以就需要知道距离最近的保持一致的`log entry`（而把以后的不一致的日志删除），则为每个`follower`维护一个`nextIndex`（表示着下一个准备发送给`follower`的`log entry`的index）
+
+在`leader`初始化的时候，所有`nextIndex`都为最新记录的下一个。在之后的`AppendEntries RPC`中检查是否一致，若不一致则不断递减直到一致（一致时`AppendEntries RPC`才能成功），匹配成功后会将`follower`所有不一致的记录全部删除
+
+#### 安全问题
+
+**竞选限制**：`candidate`必须得到大多数的投票才能成功，而这就意味着在所有的`committed entry`肯定存在于这大多数服务器中的一个或者多个中。因此在`RequestVote RPC`中会附带`candidate`最新日志记录的`term`和`index`，`candidate`的记录至少要跟某服务器的最新记录一样新（比较`term`，`term`一样时比较`index`）才会给其投票
+
+**commiting entry from previous terms**：only log entries from the leader's current term are committed by counting replicas; once an entry from the current term has been committed in this way, then all prior entries are committed indirectly because of log matching property
+
+**Follower和candidate的崩溃**：不断重复RPC直到响应，若接受到了RPC但在处理过程中崩溃也无影响，因为没有返回，RPC还会再次发送。而RPC是幂等的，所以再做一次并无影响。
+
+**时序限制**：broadcastTime << electionTimeout << MTBF（单机平均崩溃间隔）
+
+
+
+### 集群关系变动
+
+**配置：参与一致性算法决策的服务器集合**
+
+当在切换新旧配置时，可能出现某一个时间点有两个不同的`leader`会被选择
+
+![](./doc/raft-configuration_change.png)
+
+故而要分成两个阶段来改变配置
+
+**a server always use the latest configuration in its log, regardless of whether the entry is committed**
+
+-   先切换到过度配置（`joint consensus`）（`leader`把其存储成`log entry`，并传播复制到其他服务器）
+    -   配置为新旧配置的并集，所有日志条目都会向它们复制
+
+    -   该配置中所有服务器都可以成为`leader`
+
+    -   要得到同意（竞选和日志的`committed`），必须新旧配置中的大多数都得同意
+-   当过度配置`committed`，则这时`leader`（只有有过渡配置的服务器才能选为`leader`）可以创建新配置的`log entry`，并传播复制到其他服务器
+    -   当新配置`committed`，与新配置无关的服务器就可以关闭了
+
+其中会出现三种问题：
+
+1.  新服务器可能刚启动没有任何`log entries`，需要比较久的时间才能同步完成，会造成不可用性
+
+    解决：增加一个额外阶段，把这些新服务器视为`non-voting`成员（`leader`传播复制日志到他们，但不把他们归进大多数）
+
+2.  `leader`可能不在新配置中，则新配置`committed`后，`leader`则必须回到`follower`状态
+
+3.  ​
