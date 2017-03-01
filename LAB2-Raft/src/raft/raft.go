@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	HEARTBEAT_INTERVAL int = 20 * 100000
-	HEARTBEAT_TIMEOUT_BASE int = 150 * 1000000
-	HEARTBEAT_TIMEOUT_RANGE int = 150 * 1000000
-	ELECTION_TIMEOUT_BASE int = 150 * 1000000
-	ELECTION_TIMEOUT_RANGE int = 150 * 1000000
+	HEARTBEAT_INTERVAL int = 60
+	HEARTBEAT_TIMEOUT_BASE int = 150
+	HEARTBEAT_TIMEOUT_RANGE int = 150
+	ELECTION_TIMEOUT_BASE int = 150
+	ELECTION_TIMEOUT_RANGE int = 150
 )
 
 //
@@ -83,8 +83,8 @@ type Raft struct {
 }
 
 type LogEntry struct {
-	term    int
-	command interface{}
+	Term    int
+	Command interface{}
 }
 
 
@@ -145,10 +145,10 @@ func (rf *Raft) readPersist(data []byte) {
 //
 type RequestVoteArgs struct {
 	// Your data here.
-	Term            int
-	CandidateId     int
-	LastLogIndex    int
-	LastLogTerm     int
+	Term         int
+	CandidateId  int
+	LastLogIndex int
+	LastLogTerm  int
 }
 
 //
@@ -171,7 +171,6 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 		log.Printf("server %v don't vote for candidate %v for term %v", rf.me, args.CandidateId, rf.currentTerm)
 		reply.VoteGranted = false
 	} else if rf.votedFor != -1 && rf.votedFor != args.CandidateId {
-		log.Printf("server %v don't vote since already voted for %v", rf.me, rf.votedFor)
 		reply.VoteGranted = false
 	} else if args.LastLogTerm < rf.currentTerm {
 		log.Printf("server %v don't vote for lastlogterm", rf.me)
@@ -211,18 +210,17 @@ func (rf *Raft) sendRequestVote(server int, args RequestVoteArgs, reply *Request
 }
 
 type AppendEntriesArgs struct {
-	Term            int
-	LeaderId        int // so follower can redirect client
-	PrevLogIndex    int
-	PrevLogTerm     int
-	Entries         []LogEntry
-	LeaderCommit    int
-
+	Term         int
+	LeaderId     int // so follower can redirect client
+	PrevLogIndex int
+	PrevlogTerm  int
+	Entries      []LogEntry
+	LeaderCommit int
 }
 
 type AppendEntriesReply struct {
-	Term    int
-	Success bool
+	TERM    int
+	SUCCESS bool
 }
 
 //
@@ -230,11 +228,13 @@ type AppendEntriesReply struct {
 //
 func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply) {
 	if args.Term < rf.currentTerm {
-		reply.Success = false
-		reply.Term = rf.currentTerm
+		log.Printf("server %v in term %v appendentries receive but ignore since arg's term is %v",
+			rf.me, rf.currentTerm, args.Term)
+		reply.SUCCESS = false
+		reply.TERM = rf.currentTerm
 		return
 	}
-
+	log.Printf("server %v appendentries receive ", rf.me)
 	rf.heartBeatCh <- &args
 }
 
@@ -294,11 +294,14 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.persister = persister
 	rf.me = me
 
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
 	// Your initialization code here.
 	rf.isLeader = false
 	rf.applyCh = applyCh
-	rf.heartBeatCh = make(chan *AppendEntriesArgs, 1)
-	rf.rander = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rf.heartBeatCh = make(chan *AppendEntriesArgs)
+	rf.rander = rand.New(rand.NewSource(time.Now().UnixNano() + int64(rf.me)))
 
 	rf.currentTerm = 0
 	rf.votedFor = -1
@@ -328,14 +331,16 @@ func Make(peers []*labrpc.ClientEnd, me int,
 //
 func (rf *Raft) HeartBeatTimer() {
 	timeout := time.Duration(HEARTBEAT_TIMEOUT_BASE +
-		rf.rander.Intn(HEARTBEAT_TIMEOUT_RANGE))
+		rf.rander.Intn(HEARTBEAT_TIMEOUT_RANGE)) * time.Millisecond
 
 	ticker := time.NewTicker(timeout)
 	for range ticker.C {
 		select {
 		case msg := <- rf.heartBeatCh:
+			log.Printf("server %v receive heartbeat", rf.me)
 			rf.mu.Lock()
 			rf.currentTerm = msg.Term
+			rf.votedFor = msg.LeaderId
 			rf.mu.Unlock()
 		default:
 			go rf.Election()
@@ -352,7 +357,7 @@ func (rf *Raft) Election() {
 
 	log.Printf("new election begin in %v, term %v\n", rf.me, rf.currentTerm)
 	lastLogIndex := len(rf.log) - 1
-	lastLogTerm := rf.log[lastLogIndex].term
+	lastLogTerm := rf.log[lastLogIndex].Term
 	args := RequestVoteArgs{rf.currentTerm, rf.me, lastLogIndex, lastLogTerm}
 
 	// signal when winning election
@@ -371,25 +376,25 @@ func (rf *Raft) Election() {
 		go func(i int) {
 			reply := new(RequestVoteReply)
 			if rf.sendRequestVote(i, args, reply) == false {
-				log.Fatal("wrong in rpc call")
-			} else {
-				if reply.VoteGranted == true {
-					log.Printf("server %v vote for candidate %v", i, rf.me)
-					rf.mu.Lock()
-					approveNum++
-					if approveNum > len(rf.peers) / 2 {
-						winSignal <- true
-					}
-					rf.mu.Unlock()
-				} else if reply.Term > rf.currentTerm {
-					staleSignal <- reply
+				log.Print("rpc call failed and retry")
+			} else if reply.VoteGranted == true {
+				log.Printf("server %v vote for candidate %v", i, rf.me)
+				rf.mu.Lock()
+				approveNum++
+				if approveNum > len(rf.peers) / 2 {
+					winSignal <- true
 				}
+				rf.mu.Unlock()
+			} else if reply.Term > rf.currentTerm {
+				staleSignal <- reply
 			}
 		}(index)
 	}
 
+
 	select {
 	case msg := <- rf.heartBeatCh:
+		//log.Printf("candidate %v receive heartbeat from leader %v", rf.me, msg.LeaderId)
 		if msg.Term < rf.currentTerm {
 			// receive stale heartbeat, just ignore
 		} else {
@@ -419,15 +424,15 @@ func (rf *Raft) Election() {
 		rf.isLeader = false
 		go rf.HeartBeatTimer()
 		return
-	case <- time.After(time.Duration(ELECTION_TIMEOUT_BASE + rf.rander.Intn(ELECTION_TIMEOUT_RANGE))):
+	case <- time.After(time.Duration(ELECTION_TIMEOUT_BASE + rf.rander.Intn(ELECTION_TIMEOUT_RANGE)) * time.Millisecond):
 		go rf.Election()
-		log.Printf("follower %v timeout, become candidate\n", rf.me)
+		log.Printf("candidate %v election timeout, start a new election\n", rf.me)
 		return
 	}
 }
 
 func (rf *Raft) BroadCastHeartBeat() {
-	interval := time.Duration(HEARTBEAT_INTERVAL)
+	interval := time.Duration(HEARTBEAT_INTERVAL) * time.Millisecond
 
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
@@ -439,15 +444,22 @@ func (rf *Raft) BroadCastHeartBeat() {
 
 			go func(i int) {
 				prevLogIndex := len(rf.log) - 1
-				prevLogTerm := rf.log[prevLogIndex].term
-				args := AppendEntriesArgs{rf.currentTerm, rf.me, prevLogIndex, prevLogTerm, []LogEntry{}, rf.commitIndex}
+				prevLogTerm := rf.log[prevLogIndex].Term
+				args := AppendEntriesArgs {
+					Term: rf.currentTerm,
+					LeaderId: rf.me,
+					PrevLogIndex: prevLogIndex,
+					PrevlogTerm: prevLogTerm,
+					Entries: make([]LogEntry, 0),
+					LeaderCommit: rf.commitIndex,
+				}
 				reply := new(AppendEntriesReply)
-				log.Printf("leader %v send heartbeat to server %v", rf.me, i)
-				for !rf.sendAppendEntries(i, args, reply) {
-					time.Sleep(time.Nanosecond * 5)
+				log.Printf("leader %v send heartbeat to server %v in term %v", rf.me, i, rf.currentTerm)
+				if rf.sendAppendEntries(i, args, reply) == false {
+					log.Print("rpc send heartbeat failed")
 				}
 
-				if reply.Term > rf.commitIndex {
+				if reply.TERM > rf.currentTerm {
 					staleSignal <- reply
 				}
 			}(i)
@@ -459,7 +471,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 			rf.isLeader = false
 			rf.nextIndex = nil
 			rf.matchIndex = nil
-			rf.currentTerm = reply.Term
+			rf.currentTerm = reply.TERM
 			log.Println("%v receive a stale heartbeat")
 			return
 		case msg := <- rf.heartBeatCh:
@@ -470,6 +482,8 @@ func (rf *Raft) BroadCastHeartBeat() {
 				rf.currentTerm = msg.Term
 				rf.votedFor = msg.LeaderId
 				return
+			} else {
+				log.Fatal("in leader's broadcast, receive the same heartbeat term")
 			}
 		default:
 			continue

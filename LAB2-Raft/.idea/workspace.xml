@@ -28,8 +28,8 @@
       <file leaf-file-name="test_test.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="264">
-              <caret line="23" column="16" selection-start-line="23" selection-start-column="16" selection-end-line="23" selection-end-column="16" />
+            <state relative-caret-position="479">
+              <caret line="76" column="1" selection-start-line="76" selection-start-column="1" selection-end-line="76" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -38,18 +38,8 @@
       <file leaf-file-name="config.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/raft/config.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4572">
-              <caret line="298" column="45" selection-start-line="298" selection-start-column="43" selection-end-line="298" selection-end-column="45" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="builtin.go" pinned="false" current-in-tab="false">
-        <entry file="file://C:/Go/src/builtin/builtin.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="294">
-              <caret line="181" column="5" selection-start-line="181" selection-start-column="5" selection-end-line="181" selection-end-column="5" />
+            <state relative-caret-position="148">
+              <caret line="294" column="41" selection-start-line="294" selection-start-column="41" selection-end-line="294" selection-end-column="41" />
               <folding />
             </state>
           </provider>
@@ -58,8 +48,8 @@
       <file leaf-file-name="raft.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3450">
-              <caret line="325" column="28" selection-start-line="325" selection-start-column="20" selection-end-line="325" selection-end-column="28" />
+            <state relative-caret-position="-281">
+              <caret line="398" column="51" selection-start-line="398" selection-start-column="51" selection-end-line="398" selection-end-column="51" />
               <folding>
                 <element signature="e#591#711#0" expanded="true" />
               </folding>
@@ -147,7 +137,7 @@
     <property name="go.libraries.notification.had.been.shown" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
   </component>
-  <component name="RunManager" selected="Go Test.TestInitialElection in test_test.go (1)">
+  <component name="RunManager" selected="Go Test.TestReElection in test_test.go">
     <configuration default="false" name="test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
       <module name="LAB2-Raft" />
       <working_directory value="$PROJECT_DIR$" />
@@ -513,9 +503,9 @@
     </list>
     <recent_temporary>
       <list size="4">
-        <item index="0" class="java.lang.String" itemvalue="Go Test.TestInitialElection in test_test.go (1)" />
-        <item index="1" class="java.lang.String" itemvalue="Go Test.TestInitialElection in test_test.go" />
-        <item index="2" class="java.lang.String" itemvalue="Go Test.TestReElection in test_test.go" />
+        <item index="0" class="java.lang.String" itemvalue="Go Test.TestReElection in test_test.go" />
+        <item index="1" class="java.lang.String" itemvalue="Go Test.TestInitialElection in test_test.go (1)" />
+        <item index="2" class="java.lang.String" itemvalue="Go Test.TestInitialElection in test_test.go" />
         <item index="3" class="java.lang.String" itemvalue="Go Test.test_test.go" />
       </list>
     </recent_temporary>
@@ -531,44 +521,44 @@
       <option name="presentableId" value="Default" />
       <updated>1488197308104</updated>
       <workItem from="1488197313744" duration="408000" />
-      <workItem from="1488197753717" duration="27311000" />
+      <workItem from="1488197753717" duration="37367000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 19h 37m 57s.xml">
+    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.03.01 at 08h 44m 28s.xml">
       <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 19h 40m 38s.xml">
+    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.03.01 at 08h 46m 00s.xml">
       <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 19h 41m 20s.xml">
+    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.03.01 at 08h 46m 15s.xml">
       <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 20h 52m 02s.xml">
+    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.03.01 at 08h 49m 09s.xml">
       <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 20h 52m 49s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 08h 50m 55s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 21h 28m 32s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 08h 53m 32s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 21h 31m 14s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 08h 54m 57s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 21h 32m 46s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 08h 59m 32s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 21h 33m 17s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 09h 00m 44s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestInitialElection_in_test_test_go_(1) - 2017.02.28 at 21h 33m 37s.xml">
-      <configuration name="TestInitialElection in test_test.go (1)" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestReElection_in_test_test_go - 2017.03.01 at 09h 00m 59s.xml">
+      <configuration name="TestReElection in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="27719000" />
+    <option name="totallyTimeSpent" value="37775000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -655,26 +645,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="23" column="16" selection-start-line="23" selection-start-column="16" selection-end-line="23" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/labrpc/labrpc.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-465">
           <caret line="391" column="5" selection-start-line="391" selection-start-column="5" selection-end-line="391" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4572">
-          <caret line="298" column="45" selection-start-line="298" selection-start-column="43" selection-end-line="298" selection-end-column="45" />
           <folding />
         </state>
       </provider>
@@ -687,10 +661,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="148">
+          <caret line="294" column="41" selection-start-line="294" selection-start-column="41" selection-end-line="294" selection-end-column="41" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/math/rand/rand.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="294">
+          <caret line="26" column="5" selection-start-line="26" selection-start-column="5" selection-end-line="26" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="479">
+          <caret line="76" column="1" selection-start-line="76" selection-start-column="1" selection-end-line="76" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3450">
-          <caret line="325" column="28" selection-start-line="325" selection-start-column="20" selection-end-line="325" selection-end-column="28" />
+        <state relative-caret-position="-281">
+          <caret line="398" column="51" selection-start-line="398" selection-start-column="51" selection-end-line="398" selection-end-column="51" />
           <folding>
             <element signature="e#591#711#0" expanded="true" />
           </folding>
