@@ -165,25 +165,29 @@ type RequestVoteReply struct {
 //
 func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here.
-	reply.Term = rf.currentTerm
+	lastLogIndex := len(rf.log) - 1
+	lastLogTerm := rf.log[lastLogIndex].Term
+
+	deny := false
 
 	if args.Term < rf.currentTerm {
-		log.Printf("server %v don't vote for candidate %v for term %v", rf.me, args.CandidateId, rf.currentTerm)
-		reply.VoteGranted = false
-	} else if rf.votedFor != -1 && rf.votedFor != args.CandidateId {
-		reply.VoteGranted = false
-	} else if args.LastLogTerm < rf.currentTerm {
-		log.Printf("server %v don't vote for lastlogterm", rf.me)
-		reply.VoteGranted = false
-	} else if args.LastLogIndex < rf.lastApplied {
-		log.Printf("server %v don't vote for lastlogindex", rf.me)
-		reply.VoteGranted = false
-	} else {
-		reply.VoteGranted = true
+		// candidate's term is stale
+		deny = true
+	} else if args.LastLogTerm < lastLogTerm ||
+		(args.LastLogTerm == lastLogTerm &&
+		args.LastLogIndex < lastLogIndex) {
+		deny = true
+	} else if args.Term == rf.currentTerm && rf.votedFor != -1 {
+		deny = true
+	}
+
+	if args.Term > rf.currentTerm {
 		rf.currentTerm = args.Term
 		rf.votedFor = args.CandidateId
 	}
 
+	reply.VoteGranted = !deny
+	reply.Term = rf.currentTerm
 	return
 }
 
@@ -219,8 +223,8 @@ type AppendEntriesArgs struct {
 }
 
 type AppendEntriesReply struct {
-	TERM    int
-	SUCCESS bool
+	Term    int
+	Success bool
 }
 
 //
@@ -230,11 +234,13 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 	if args.Term < rf.currentTerm {
 		log.Printf("server %v in term %v appendentries receive but ignore since arg's term is %v",
 			rf.me, rf.currentTerm, args.Term)
-		reply.SUCCESS = false
-		reply.TERM = rf.currentTerm
+		reply.Success = false
+		reply.Term = rf.currentTerm
 		return
+	} else if args.Term >= rf.currentTerm && rf.isLeader == false {
+		rf.currentTerm = args.Term
+		rf.votedFor = args.LeaderId
 	}
-	log.Printf("server %v appendentries receive ", rf.me)
 	rf.heartBeatCh <- &args
 }
 
@@ -333,8 +339,7 @@ func (rf *Raft) HeartBeatTimer() {
 	timeout := time.Duration(HEARTBEAT_TIMEOUT_BASE +
 		rf.rander.Intn(HEARTBEAT_TIMEOUT_RANGE)) * time.Millisecond
 
-	ticker := time.NewTicker(timeout)
-	for range ticker.C {
+	for {
 		select {
 		case msg := <- rf.heartBeatCh:
 			log.Printf("server %v receive heartbeat", rf.me)
@@ -342,7 +347,7 @@ func (rf *Raft) HeartBeatTimer() {
 			rf.currentTerm = msg.Term
 			rf.votedFor = msg.LeaderId
 			rf.mu.Unlock()
-		default:
+		case <- time.After(timeout):
 			go rf.Election()
 			return
 		}
@@ -355,7 +360,7 @@ func (rf *Raft) Election() {
 	rf.votedFor = rf.me
 	rf.mu.Unlock()
 
-	log.Printf("new election begin in %v, term %v\n", rf.me, rf.currentTerm)
+	log.Printf("heartbeat timeout server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
 	args := RequestVoteArgs{rf.currentTerm, rf.me, lastLogIndex, lastLogTerm}
@@ -434,9 +439,9 @@ func (rf *Raft) Election() {
 func (rf *Raft) BroadCastHeartBeat() {
 	interval := time.Duration(HEARTBEAT_INTERVAL) * time.Millisecond
 
-	ticker := time.NewTicker(interval)
-	for range ticker.C {
-		staleSignal := make(chan *AppendEntriesReply, 1)
+	for {
+		staleSignal := make(chan *AppendEntriesReply, len(rf.peers) - 1)
+
 		for i := range rf.peers {
 			if i == rf.me {
 				continue
@@ -459,7 +464,8 @@ func (rf *Raft) BroadCastHeartBeat() {
 					log.Print("rpc send heartbeat failed")
 				}
 
-				if reply.TERM > rf.currentTerm {
+				if reply.Term > rf.currentTerm {
+					log.Printf("leader %v know itself is stale, return to follow state", rf.me)
 					staleSignal <- reply
 				}
 			}(i)
@@ -471,21 +477,29 @@ func (rf *Raft) BroadCastHeartBeat() {
 			rf.isLeader = false
 			rf.nextIndex = nil
 			rf.matchIndex = nil
-			rf.currentTerm = reply.TERM
-			log.Println("%v receive a stale heartbeat")
+			rf.currentTerm = reply.Term
+			rf.votedFor = -1
+			log.Printf("leader %v know itself is stale, return to follow state", rf.me)
+			go rf.HeartBeatTimer()
 			return
 		case msg := <- rf.heartBeatCh:
 			if msg.Term > rf.currentTerm {
+				log.Printf("leader %v in term %v find a superior leader %v in term %v", rf.me, rf.currentTerm,
+					msg.LeaderId, msg.Term)
 				rf.isLeader = false
 				rf.nextIndex = nil
 				rf.matchIndex = nil
 				rf.currentTerm = msg.Term
 				rf.votedFor = msg.LeaderId
+				go rf.HeartBeatTimer()
 				return
+			} else if msg.Term < rf.currentTerm {
+				continue
 			} else {
-				log.Fatal("in leader's broadcast, receive the same heartbeat term")
+				log.Fatalf("leader %v in term %v broadcast, receive the same heartbeat term from server %v", rf.me, rf.currentTerm, msg.LeaderId)
 			}
-		default:
+		case <- time.After(interval):
+			//log.Print("fuck")
 			continue
 		}
 	}
