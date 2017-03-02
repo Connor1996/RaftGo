@@ -52,20 +52,20 @@ func TestReElection(t *testing.T) {
 
 	leader1 := cfg.checkOneLeader()
 
-	log.Print("the leader disconnects-----------------")
+	log.Print("----------the leader disconnects-----------------")
 	// if the leader disconnects, a new one should be elected.
 	cfg.disconnect(leader1)
 	cfg.checkOneLeader()
 
 
-	log.Print("the old leader rejoin-----------------")
+	log.Print("-----------the old leader rejoin-----------------")
 	// if the old leader rejoins, that shouldn't
 	// disturb the old leader.
 	cfg.connect(leader1)
 	leader2 := cfg.checkOneLeader()
 
 
-	log.Print("there is no quorum-----------------")
+	log.Print("------------there is no quorum-----------------")
 	// if there's no quorum, no leader should
 	// be elected.
 	cfg.disconnect(leader2)
@@ -74,13 +74,13 @@ func TestReElection(t *testing.T) {
 	cfg.checkNoLeader()
 
 
-	log.Print("a quorum arise-----------------")
+	log.Print("--------------a quorum arise-----------------")
 	// if a quorum arises, it should elect a leader.
 	cfg.connect((leader2 + 1) % servers)
 	cfg.checkOneLeader()
 
 
-	log.Print("rejoin the last node-----------------")
+	log.Print("-------------rejoin the last node-----------------")
 	// re-join of last node shouldn't prevent leader from existing.
 	cfg.connect(leader2)
 	cfg.checkOneLeader()
@@ -98,11 +98,14 @@ func TestBasicAgree(t *testing.T) {
 	iters := 3
 	for index := 1; index < iters+1; index++ {
 		nd, _ := cfg.nCommitted(index)
+
 		if nd > 0 {
 			t.Fatalf("some have committed before Start()")
 		}
 
+		log.Print("one begin")
 		xindex := cfg.one(index*100, servers)
+		log.Print("one end")
 		if xindex != index {
 			t.Fatalf("got index %v but expected %v", xindex, index)
 		}
@@ -121,6 +124,7 @@ func TestFailAgree(t *testing.T) {
 	cfg.one(101, servers)
 
 	// follower network failure
+	log.Print("--------------follower network failure")
 	leader := cfg.checkOneLeader()
 	cfg.disconnect((leader + 1) % servers)
 
@@ -132,6 +136,7 @@ func TestFailAgree(t *testing.T) {
 	cfg.one(105, servers-1)
 
 	// failed server re-connected
+	log.Print("--------------failed server re-connected")
 	cfg.connect((leader + 1) % servers)
 
 	// agree with full set of servers?
