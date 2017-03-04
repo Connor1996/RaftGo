@@ -47,7 +47,6 @@ func TestReElection(t *testing.T) {
 	servers := 3
 	cfg := make_config(t, servers, false)
 	defer cfg.cleanup()
-
 	fmt.Printf("Test: election after network failure ...\n")
 
 	leader1 := cfg.checkOneLeader()
@@ -103,9 +102,8 @@ func TestBasicAgree(t *testing.T) {
 			t.Fatalf("some have committed before Start()")
 		}
 
-		log.Print("one begin")
 		xindex := cfg.one(index*100, servers)
-		log.Print("one end")
+
 		if xindex != index {
 			t.Fatalf("got index %v but expected %v", xindex, index)
 		}
@@ -157,6 +155,7 @@ func TestFailNoAgree(t *testing.T) {
 	cfg.one(10, servers)
 
 	// 3 of 5 followers disconnect
+	log.Print("-------------3 of 5 followers disconnect----------")
 	leader := cfg.checkOneLeader()
 	cfg.disconnect((leader + 1) % servers)
 	cfg.disconnect((leader + 2) % servers)
@@ -178,6 +177,7 @@ func TestFailNoAgree(t *testing.T) {
 	}
 
 	// repair failures
+	log.Print("--------------re-connect the followers-------------")
 	cfg.connect((leader + 1) % servers)
 	cfg.connect((leader + 2) % servers)
 	cfg.connect((leader + 3) % servers)
@@ -310,6 +310,7 @@ func TestRejoin(t *testing.T) {
 	cfg.one(101, servers)
 
 	// leader network failure
+	log.Print("-----------leader network failure----------")
 	leader1 := cfg.checkOneLeader()
 	cfg.disconnect(leader1)
 
@@ -319,18 +320,22 @@ func TestRejoin(t *testing.T) {
 	cfg.rafts[leader1].Start(104)
 
 	// new leader commits, also for index=2
+	log.Print("")
 	cfg.one(103, 2)
 
 	// new leader network failure
+	log.Print("----------new leader network failure---------")
 	leader2 := cfg.checkOneLeader()
 	cfg.disconnect(leader2)
 
 	// old leader connected again
+	log.Print("-----------old leader re-connect-----------")
 	cfg.connect(leader1)
 
 	cfg.one(104, 2)
 
 	// all together now
+	log.Print("-----------all together now---------")
 	cfg.connect(leader2)
 
 	cfg.one(105, servers)
