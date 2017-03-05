@@ -538,6 +538,7 @@ func TestPersist1(t *testing.T) {
 	for i := 0; i < servers; i++ {
 		cfg.start1(i)
 	}
+	log.Print("------------disconnect and re-connect----------")
 	for i := 0; i < servers; i++ {
 		cfg.disconnect(i)
 		cfg.connect(i)
@@ -664,15 +665,17 @@ func TestFigure8(t *testing.T) {
 
 	fmt.Printf("Test: Figure 8 ...\n")
 
-	cfg.one(rand.Int(), 1)
+	cfg.one(1, 1)
 
+	count := 2
 	nup := servers
 	for iters := 0; iters < 1000; iters++ {
 		leader := -1
 		for i := 0; i < servers; i++ {
 			if cfg.rafts[i] != nil {
-				_, _, ok := cfg.rafts[i].Start(rand.Int())
+				_, _, ok := cfg.rafts[i].Start(count)
 				if ok {
+					count++
 					leader = i
 				}
 			}
@@ -708,7 +711,7 @@ func TestFigure8(t *testing.T) {
 		}
 	}
 
-	cfg.one(rand.Int(), servers)
+	cfg.one(count, servers)
 
 	fmt.Printf("  ... Passed\n")
 }

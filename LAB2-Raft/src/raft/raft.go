@@ -118,6 +118,7 @@ func (rf *Raft) persist() {
 	encoder.Encode(&rf.currentTerm)
 	encoder.Encode(&rf.votedFor)
 	encoder.Encode(&rf.log)
+	rf.persister.SaveRaftState(writeBuffer.Bytes())
 }
 
 //
@@ -182,13 +183,15 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 
 	if (args.Term > rf.currentTerm || (args.Term == rf.currentTerm && (rf.votedFor == -1 || rf.votedFor == args.CandidateId))) &&
 		(args.LastLogTerm > lastLogTerm || (args.LastLogTerm == lastLogTerm && args.LastLogIndex >= lastLogIndex)) {
-		log.Printf("server %v vote for candidate %v in term %v", rf.me, args.CandidateId, rf.currentTerm, rf.isLeader)
+		//log.Printf("server %v vote for candidate %v in term %v", rf.me, args.CandidateId, rf.currentTerm, rf.isLeader)
 		reply.VoteGranted = true
 		rf.votedFor = args.CandidateId
 		rf.currentTerm = args.Term
 		reply.Term = rf.currentTerm
 	} else {
+		//log.Printf("server %v vote for false in term %v", rf.me, rf.currentTerm)
 		reply.VoteGranted = false
+		rf.currentTerm = args.Term
 		reply.Term = rf.currentTerm
 	}
 	return
@@ -239,7 +242,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 
 	if args.Term < rf.currentTerm {
 		//ignore since args term is stale
-		//log.Printf("server %v receive from stale msg from leader %v", rf.me, args.LeaderId)
+		log.Print("false")
 		reply.Success = false
 		reply.Term = rf.currentTerm
 		return
@@ -262,7 +265,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 			rf.log = append(rf.log[ : args.PrevLogIndex + 1], args.Entries...)
 			//log.Printf("server %v append log %v-%v in term %v", rf.me, args.PrevLogIndex + 1, args.PrevLogIndex + len(args.Entries), rf.currentTerm)
 		} else {
-			//log.Print("false")
+			//log.Printf("server %v : %v %v", rf.me, len(rf.log) - 1, rf.log[len(rf.log)-1])
 			reply.Success = false
 			return
 		}
@@ -275,7 +278,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 				rf.commitIndex = args.LeaderCommit
 			}
 		} else {
-			reply.Success = false
+			reply.Success = true
 			reply.Term = rf.currentTerm
 			return
 			log.Fatalf("server %v commit index %v is larger than leadercommit %v", rf.me, rf.commitIndex, args.LeaderCommit)
@@ -405,9 +408,9 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 
 	} else if reply.Term == rf.currentTerm {
 		// decrement nextIndex and retry
-		log.Printf("leader %v decrement nextIndex[%v] to %v",rf.me, server, rf.nextIndex[server] - 1)
+		//log.Printf("leader %v decrement nextIndex[%v] to %v",rf.me, server, rf.nextIndex[server] - 1)
 		//if (rf.nextIndex[server] > 1) {
-			rf.nextIndex[server]--
+		rf.nextIndex[server]--
 		//}
 	} else {
 		log.Print("success is false and reply.term < rf.currentTerm")
@@ -444,7 +447,8 @@ func (rf *Raft) Commit() {
 	// find the upper bound where
 	// index > commitIndex, a majority of matchIndex[i] >= N
 	// and log[N].term == currentTerm
-	for index < len(rf.log) {
+	upperBound := index
+	for upperBound < len(rf.log) {
 		count := 1 // the number of servers that have given entry(include itself)
 		isSafe := false
 		for i := range rf.peers {
@@ -463,11 +467,15 @@ func (rf *Raft) Commit() {
 		if !isSafe {
 			break
 		}
-		index++
+		upperBound++
 	}
-	index--
+	upperBound--
+
+	if upperBound < index {
+		return
+	}
 	//log.Printf("%v", index)
-	for rf.commitIndex < index {
+	for rf.commitIndex < upperBound {
 		rf.commitIndex++
 		log.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
 		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
@@ -511,6 +519,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.rander = rand.New(rand.NewSource(time.Now().UnixNano() + int64(rf.me)))
 	rf.locker = make([]sync.Mutex, len(rf.peers))
 
+	log.Print("init here")
 	rf.currentTerm = 0
 	rf.votedFor = -1
 	rf.log = make([]LogEntry, 0)
