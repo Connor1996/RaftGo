@@ -361,7 +361,7 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 	lastLogIndex := len(rf.log) - 1
 	var entries []LogEntry
 
-	if rf.matchIndex[server] + 1 == rf.nextIndex[server] {
+	//if rf.matchIndex[server] + 1 == rf.nextIndex[server] {
 		// consistent
 		if lastLogIndex >= rf.nextIndex[server] {
 			entries = rf.log[rf.nextIndex[server] : ]
@@ -369,10 +369,10 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 			// nothing to send, namely, sending heartbeat
 			//log.Printf("leader %v send heartbeat to server %v", rf.me, server)
 		}
-	} else {
-		// haven't achieve consistency
-		// send empty entries to find out the stage where follower and leader is
-	}
+	//} else {
+	//	// haven't achieve consistency
+	//	// send empty entries to find out the stage where follower and leader is
+	//}
 
 	args := AppendEntriesArgs {
 		Term: rf.currentTerm,
@@ -409,7 +409,7 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 
 	} else if reply.Term == rf.currentTerm {
 		// decrement nextIndex and retry
-		//log.Printf("leader %v decrement nextIndex[%v] to %v",rf.me, server, rf.nextIndex[server] - 1)
+		log.Printf("leader %v decrement nextIndex[%v] to %v",rf.me, server, rf.nextIndex[server] - 1)
 		//if (rf.nextIndex[server] > 1) {
 		rf.nextIndex[server]--
 		//}
@@ -457,7 +457,7 @@ func (rf *Raft) Commit() {
 				continue
 			}
 
-			if rf.matchIndex[i] >= index {
+			if rf.matchIndex[i] >= upperBound {
 				count++
 				if count > len(rf.peers) / 2 {
 					isSafe = true
@@ -524,7 +524,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.rander = rand.New(rand.NewSource(time.Now().UnixNano() + int64(rf.me)))
 	rf.locker = make([]sync.Mutex, len(rf.peers))
 
-	log.Print("init here")
+	//log.Print("init here")
 	rf.currentTerm = 0
 	rf.votedFor = -1
 	rf.log = make([]LogEntry, 0)

@@ -5,6 +5,5 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="jdk" jdkName="Go 1.7rc6" jdkType="Go SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="GOPATH &lt;LAB2-Raft&gt;" level="project" />
   </component>
 </module>

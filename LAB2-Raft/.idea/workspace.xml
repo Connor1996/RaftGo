@@ -31,8 +31,8 @@
       <file leaf-file-name="test_test.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="30855">
-              <caret line="943" column="0" selection-start-line="943" selection-start-column="0" selection-end-line="943" selection-end-column="0" />
+            <state relative-caret-position="181">
+              <caret line="220" column="18" selection-start-line="220" selection-start-column="16" selection-end-line="220" selection-end-column="18" />
               <folding />
             </state>
           </provider>
@@ -71,11 +71,21 @@
       <file leaf-file-name="raft.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="780">
-              <caret line="378" column="4" selection-start-line="378" selection-start-column="4" selection-end-line="378" selection-end-column="4" />
+            <state relative-caret-position="363">
+              <caret line="382" column="30" selection-start-line="382" selection-start-column="30" selection-end-line="382" selection-end-column="30" />
               <folding>
                 <element signature="e#591#711#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="panic.go" pinned="false" current-in-tab="false">
+        <entry file="file://C:/Go/src/runtime/panic.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="194">
+              <caret line="499" column="0" selection-start-line="499" selection-start-column="0" selection-end-line="499" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -163,7 +173,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file://E:/Coding/MIT-6.824/LAB2-Raft/src/raft/test_test.go" />
   </component>
-  <component name="RunManager" selected="Go Test.TestUnreliableChurn in test_test.go">
+  <component name="RunManager" selected="Go Test.All in 'raft'">
     <configuration default="false" name="TestPersist1 in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
       <module name="LAB2-Raft" />
       <working_directory value="$PROJECT_DIR$" />
@@ -184,24 +194,6 @@
       <pattern value="^TestFigure8$" />
       <method />
     </configuration>
-    <configuration default="false" name="TestUnreliableAgree in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
-      <module name="LAB2-Raft" />
-      <working_directory value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="raft" />
-      <pattern value="^TestUnreliableAgree$" />
-      <method />
-    </configuration>
-    <configuration default="false" name="TestReliableChurn in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
-      <module name="LAB2-Raft" />
-      <working_directory value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="raft" />
-      <pattern value="^TestReliableChurn$" />
-      <method />
-    </configuration>
     <configuration default="false" name="TestUnreliableChurn in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
       <module name="LAB2-Raft" />
       <working_directory value="$PROJECT_DIR$" />
@@ -209,6 +201,23 @@
       <kind value="PACKAGE" />
       <package value="raft" />
       <pattern value="^TestUnreliableChurn$" />
+      <method />
+    </configuration>
+    <configuration default="false" name="All in 'raft'" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB2-Raft" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="raft" />
+      <method />
+    </configuration>
+    <configuration default="false" name="TestPersist1 in test_test.go (1)" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB2-Raft" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="raft" />
+      <pattern value="^TestPersist1$" />
       <method />
     </configuration>
     <configuration default="true" type="#org.jetbrains.idea.devkit.run.PluginConfigurationType" factoryName="Plugin">
@@ -533,17 +542,17 @@
     <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Go Test.TestPersist1 in test_test.go" />
       <item index="1" class="java.lang.String" itemvalue="Go Test.TestFigure8 in test_test.go" />
-      <item index="2" class="java.lang.String" itemvalue="Go Test.TestUnreliableAgree in test_test.go" />
-      <item index="3" class="java.lang.String" itemvalue="Go Test.TestReliableChurn in test_test.go" />
-      <item index="4" class="java.lang.String" itemvalue="Go Test.TestUnreliableChurn in test_test.go" />
+      <item index="2" class="java.lang.String" itemvalue="Go Test.TestUnreliableChurn in test_test.go" />
+      <item index="3" class="java.lang.String" itemvalue="Go Test.All in 'raft'" />
+      <item index="4" class="java.lang.String" itemvalue="Go Test.TestPersist1 in test_test.go (1)" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Go Test.TestPersist1 in test_test.go" />
-        <item index="1" class="java.lang.String" itemvalue="Go Test.TestUnreliableChurn in test_test.go" />
-        <item index="2" class="java.lang.String" itemvalue="Go Test.TestFigure8 in test_test.go" />
-        <item index="3" class="java.lang.String" itemvalue="Go Test.TestUnreliableAgree in test_test.go" />
-        <item index="4" class="java.lang.String" itemvalue="Go Test.TestReliableChurn in test_test.go" />
+        <item index="0" class="java.lang.String" itemvalue="Go Test.All in 'raft'" />
+        <item index="1" class="java.lang.String" itemvalue="Go Test.TestPersist1 in test_test.go (1)" />
+        <item index="2" class="java.lang.String" itemvalue="Go Test.TestPersist1 in test_test.go" />
+        <item index="3" class="java.lang.String" itemvalue="Go Test.TestUnreliableChurn in test_test.go" />
+        <item index="4" class="java.lang.String" itemvalue="Go Test.TestFigure8 in test_test.go" />
       </list>
     </recent_temporary>
   </component>
@@ -560,44 +569,46 @@
       <workItem from="1488197313744" duration="408000" />
       <workItem from="1488197753717" duration="79630000" />
       <workItem from="1488446646209" duration="81299000" />
-      <workItem from="1488765878409" duration="1029000" />
+      <workItem from="1488765878409" duration="2530000" />
+      <workItem from="1488769662520" duration="96000" />
+      <workItem from="1488769836934" duration="1316000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="TestFigure8_in_test_test_go - 2017.03.05 at 14h 49m 52s.xml">
-      <configuration name="TestFigure8 in test_test.go" configurationId="GoTestRunConfiguration" />
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 12m 51s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestPersist1_in_test_test_go - 2017.03.05 at 12h 30m 16s.xml">
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 14m 36s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 15m 39s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 17m 53s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 22m 30s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="All_in_'raft' - 2017.03.06 at 11h 28m 37s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestPersist1_in_test_test_go - 2017.03.06 at 11h 10m 45s.xml">
       <configuration name="TestPersist1 in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestPersist1_in_test_test_go - 2017.03.06 at 10h 03m 01s.xml">
+    <history-entry file="TestPersist1_in_test_test_go - 2017.03.06 at 11h 12m 01s.xml">
       <configuration name="TestPersist1 in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestPersist1_in_test_test_go - 2017.03.06 at 10h 03m 44s.xml">
-      <configuration name="TestPersist1 in test_test.go" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestPersist1_in_test_test_go_(1) - 2017.03.06 at 11h 17m 04s.xml">
+      <configuration name="TestPersist1 in test_test.go (1)" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestRejoin_in_test_test_go - 2017.03.05 at 13h 02m 14s.xml">
-      <configuration name="TestRejoin in test_test.go" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestReliableChurn_in_test_test_go - 2017.03.05 at 12h 27m 02s.xml">
-      <configuration name="TestReliableChurn in test_test.go" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestReliableChurn_in_test_test_go - 2017.03.05 at 12h 27m 33s.xml">
-      <configuration name="TestReliableChurn in test_test.go" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestUnreliableAgree_in_test_test_go - 2017.03.05 at 14h 45m 58s.xml">
-      <configuration name="TestUnreliableAgree in test_test.go" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestUnreliableAgree_in_test_test_go - 2017.03.05 at 14h 49m 13s.xml">
-      <configuration name="TestUnreliableAgree in test_test.go" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestUnreliableChurn_in_test_test_go - 2017.03.05 at 14h 50m 17s.xml">
+    <history-entry file="TestUnreliableChurn_in_test_test_go - 2017.03.06 at 11h 08m 08s.xml">
       <configuration name="TestUnreliableChurn in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="162366000" />
+    <option name="totallyTimeSpent" value="165279000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -618,6 +629,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.50214595" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32896176" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17006437" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -626,37 +638,36 @@
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="true" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
-      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.50214595" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32896176" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32896176" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17006437" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
-      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17006437" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -681,7 +692,7 @@
           <line>384</line>
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="2" />
+      <option name="time" value="3" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -690,6 +701,106 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30855">
+          <caret line="943" column="0" selection-start-line="943" selection-start-column="0" selection-end-line="943" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/util.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12276">
+          <caret line="381" column="19" selection-start-line="381" selection-start-column="19" selection-end-line="381" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/labrpc/labrpc.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12672">
+          <caret line="391" column="28" selection-start-line="391" selection-start-column="26" selection-end-line="391" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#591#711#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/persister.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1254">
+          <caret line="38" column="21" selection-start-line="38" selection-start-column="21" selection-end-line="38" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30855">
+          <caret line="943" column="0" selection-start-line="943" selection-start-column="0" selection-end-line="943" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/util.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12276">
+          <caret line="381" column="19" selection-start-line="381" selection-start-column="19" selection-end-line="381" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/labrpc/labrpc.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12672">
+          <caret line="391" column="28" selection-start-line="391" selection-start-column="26" selection-end-line="391" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#591#711#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/persister.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1254">
+          <caret line="38" column="21" selection-start-line="38" selection-start-column="21" selection-end-line="38" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="31119">
@@ -849,13 +960,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://C:/Go/src/runtime/panic.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="181">
-          <caret line="534" column="10" selection-start-line="534" selection-start-column="9" selection-end-line="534" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/util.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -890,16 +994,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30855">
-          <caret line="943" column="0" selection-start-line="943" selection-start-column="0" selection-end-line="943" selection-end-column="0" />
+        <state relative-caret-position="181">
+          <caret line="220" column="18" selection-start-line="220" selection-start-column="16" selection-end-line="220" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/runtime/panic.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="194">
+          <caret line="499" column="0" selection-start-line="499" selection-start-column="0" selection-end-line="499" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="780">
-          <caret line="378" column="4" selection-start-line="378" selection-start-column="4" selection-end-line="378" selection-end-column="4" />
+        <state relative-caret-position="363">
+          <caret line="382" column="30" selection-start-line="382" selection-start-column="30" selection-end-line="382" selection-end-column="30" />
           <folding>
             <element signature="e#591#711#0" expanded="true" />
           </folding>
