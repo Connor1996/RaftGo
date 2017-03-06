@@ -229,8 +229,9 @@ type AppendEntriesArgs struct {
 }
 
 type AppendEntriesReply struct {
-	Term    int
-	Success bool
+	Term        int
+	Success     bool
+	CommitIndex int
 }
 
 //
@@ -471,10 +472,14 @@ func (rf *Raft) Commit() {
 	}
 	upperBound--
 
+	// for situation described in figure 8
+	// there is a current term apply, but not committed
+	// so previous term log still shouldn't be committed
 	if upperBound < index {
 		return
 	}
-	//log.Printf("%v", index)
+
+	// update commmit index to upperbound
 	for rf.commitIndex < upperBound {
 		rf.commitIndex++
 		log.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
