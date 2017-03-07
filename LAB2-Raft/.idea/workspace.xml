@@ -31,7 +31,7 @@
       <file leaf-file-name="test_test.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
+            <state relative-caret-position="561">
               <caret line="25" column="7" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="7" />
               <folding />
             </state>
@@ -570,7 +570,8 @@
       <workItem from="1488765878409" duration="2530000" />
       <workItem from="1488769662520" duration="96000" />
       <workItem from="1488769836934" duration="14898000" />
-      <workItem from="1488803928903" duration="2407000" />
+      <workItem from="1488803928903" duration="2737000" />
+      <workItem from="1488865638854" duration="8000" />
     </task>
     <servers />
   </component>
@@ -593,8 +594,8 @@
     <history-entry file="All_in_'raft' - 2017.03.06 at 22h 35m 13s.xml">
       <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestFigure8Unreliable_in_test_test_go - 2017.03.06 at 19h 08m 59s.xml">
-      <configuration name="TestFigure8Unreliable in test_test.go" configurationId="GoTestRunConfiguration" />
+    <history-entry file="All_in_'raft' - 2017.03.06 at 22h 40m 52s.xml">
+      <configuration name="All in 'raft'" configurationId="GoTestRunConfiguration" />
     </history-entry>
     <history-entry file="TestFigure8Unreliable_in_test_test_go - 2017.03.06 at 19h 13m 03s.xml">
       <configuration name="TestFigure8Unreliable in test_test.go" configurationId="GoTestRunConfiguration" />
@@ -607,7 +608,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="181268000" />
+    <option name="totallyTimeSpent" value="181606000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -620,7 +621,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-9" y="-9" width="1938" height="1048" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -628,7 +629,7 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.50214595" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33224043" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33224043" sideWeight="0.49785408" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.17006437" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -704,6 +705,48 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12276">
+          <caret line="381" column="19" selection-start-line="381" selection-start-column="19" selection-end-line="381" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/labrpc/labrpc.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="12672">
+          <caret line="391" column="28" selection-start-line="391" selection-start-column="26" selection-end-line="391" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#591#711#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/runtime/panic.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="16368">
+          <caret line="499" column="0" selection-start-line="499" selection-start-column="0" selection-end-line="499" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/raft/persister.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1254">
+          <caret line="38" column="21" selection-start-line="38" selection-start-column="21" selection-end-line="38" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="429">
@@ -1063,7 +1106,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/test_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
+        <state relative-caret-position="561">
           <caret line="25" column="7" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="7" />
           <folding />
         </state>
