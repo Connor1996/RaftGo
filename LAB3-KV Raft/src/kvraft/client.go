@@ -5,13 +5,15 @@ import "crypto/rand"
 import (
 	"math/big"
 	"log"
+	"sync"
 )
 
 
 type Clerk struct {
-	servers []*labrpc.ClientEnd
+	servers         []*labrpc.ClientEnd
 	// You will have to modify this struct.
-	recentLeader int
+	recentLeader    int
+	mu              sync.Mutex
 }
 
 func nrand() int64 {
@@ -42,6 +44,9 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 // arguments. and reply must be passed as a pointer.
 //
 func (ck *Clerk) Get(key string) string {
+	ck.mu.Lock()
+	defer ck.mu.Unlock()
+
 	var leaderIdx int
 	if ck.recentLeader != -1 {
 		leaderIdx = ck.recentLeader
@@ -49,26 +54,27 @@ func (ck *Clerk) Get(key string) string {
 		leaderIdx = int(nrand() % int64(len(ck.servers)))
 	}
 
+	args := GetArgs{key, nrand()}
 	for {
-		args := GetArgs{key}
 		var reply GetReply
 		// You will have to modify this function.
 		if ck.servers[leaderIdx].Call("RaftKV.Get", &args, &reply) == false {
-			leaderIdx = (leaderIdx + 1) % len(ck.servers)
-			continue
-		}
-
-		if reply.WrongLeader == true {
-			leaderIdx = (leaderIdx + 1) % len(ck.servers)
-		} else {
+			// retry
+			log.Print("get rpc false")
+		} else if reply.WrongLeader == false {
+			ck.recentLeader = leaderIdx
 			if reply.Err == "" {
-				ck.recentLeader = leaderIdx
 				return reply.Value
-			} else {
-				log.Print(reply.Err)
+			} else if reply.Err == "lose leadership" {
+
+			} else if reply.Err == "the key doesn't exist"{
 				return ""
+			} else {
+				log.Print("[ERROR] ", reply.Err)
 			}
 		}
+		leaderIdx = (leaderIdx + 1) % len(ck.servers)
+		//log.Print("loop get", args)
 	}
 }
 
@@ -83,6 +89,9 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 //
 func (ck *Clerk) PutAppend(key string, value string, op string) {
+	ck.mu.Lock()
+	defer ck.mu.Unlock()
+
 	// You will have to modify this function.
 	var leaderIdx int
 	if ck.recentLeader != -1 {
@@ -90,18 +99,25 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	} else {
 		leaderIdx = int(nrand() % int64(len(ck.servers)))
 	}
-
+	args := PutAppendArgs{key, value, op, nrand()}
 	for {
-		args := PutAppendArgs{key, value, op}
 		var reply PutAppendReply
 		// You will have to modify this function.
-		ck.servers[leaderIdx].Call("RaftKV.PutAppend", &args, &reply)
+		if ck.servers[leaderIdx].Call("RaftKV.PutAppend", &args, &reply) == false {
+			log.Printf("put append %v rpc false", args)
+		} else if reply.WrongLeader == false {
+			ck.recentLeader = leaderIdx
+			if reply.Err == "" {
+				return
+			} else if reply.Err == "lose leadership" {
 
-		if reply.WrongLeader == true {
-			leaderIdx = (leaderIdx + 1) % len(ck.servers)
-		} else {
-			break
+			} else {
+				log.Print(reply.Err)
+			}
+
 		}
+		leaderIdx = (leaderIdx + 1) % len(ck.servers)
+		log.Print("loop")
 	}
 }
 

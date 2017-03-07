@@ -25,11 +25,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-      <file leaf-file-name="server.go" pinned="false" current-in-tab="true">
+      <file leaf-file-name="server.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/kvraft/server.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1452">
-              <caret line="95" column="22" selection-start-line="95" selection-start-column="22" selection-end-line="95" selection-end-column="22" />
+            <state relative-caret-position="182">
+              <caret line="62" column="23" selection-start-line="62" selection-start-column="23" selection-end-line="62" selection-end-column="23" />
               <folding>
                 <element signature="e#16#83#0" expanded="true" />
               </folding>
@@ -37,11 +37,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test_test.go" pinned="false" current-in-tab="false">
+      <file leaf-file-name="test_test.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/kvraft/test_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="313">
-              <caret line="241" column="35" selection-start-line="241" selection-start-column="35" selection-end-line="241" selection-end-column="35" />
+            <state relative-caret-position="264">
+              <caret line="248" column="56" selection-start-line="248" selection-start-column="56" selection-end-line="248" selection-end-column="56" />
               <folding />
             </state>
           </provider>
@@ -50,11 +50,21 @@
       <file leaf-file-name="client.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/kvraft/client.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="462">
-              <caret line="14" column="1" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+            <state relative-caret-position="17">
+              <caret line="119" column="8" selection-start-line="119" selection-start-column="8" selection-end-line="119" selection-end-column="8" />
               <folding>
-                <element signature="e#16#82#0" expanded="true" />
+                <element signature="e#16#90#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="common.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/kvraft/common.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="219">
+              <caret line="32" column="5" selection-start-line="32" selection-start-column="5" selection-end-line="32" selection-end-column="5" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -62,8 +72,18 @@
       <file leaf-file-name="raft.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2446">
-              <caret line="344" column="15" selection-start-line="344" selection-start-column="15" selection-end-line="344" selection-end-column="15" />
+            <state relative-caret-position="-9059">
+              <caret line="65" column="20" selection-start-line="65" selection-start-column="20" selection-end-line="65" selection-end-column="20" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="config.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/raft/config.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="260">
+              <caret line="380" column="17" selection-start-line="380" selection-start-column="17" selection-end-line="380" selection-end-column="17" />
               <folding />
             </state>
           </provider>
@@ -97,6 +117,16 @@
   <component name="JsGulpfileManager">
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHome" value="Bundled (Maven 3)" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="MavenProjectNavigator">
+    <treeState />
   </component>
   <component name="ProjectFrameBounds">
     <option name="x" value="-9" />
@@ -143,7 +173,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/src/kvraft/server.go" />
   </component>
-  <component name="RunManager" selected="Go Test.All in 'kvraft'">
+  <component name="RunManager" selected="Go Test.TestUnreliable in test_test.go">
     <configuration default="false" name="All in 'kvraft'" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
       <module name="LAB3-KV Raft" />
       <working_directory value="$PROJECT_DIR$/" />
@@ -152,6 +182,44 @@
       <package value="kvraft" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="E:\Coding\MIT-6.824\LAB3-KV Raft\src\kvraft\server.go" />
+      <method />
+    </configuration>
+    <configuration default="false" name="TestUnreliable in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB3-KV Raft" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="kvraft" />
+      <pattern value="^TestUnreliable$" />
+      <method />
+    </configuration>
+    <configuration default="false" name="TestUnreliableOneKey in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB3-KV Raft" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="kvraft" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="E:\Coding\MIT-6.824\LAB3-KV Raft\src\kvraft\server.go" />
+      <pattern value="^TestUnreliableOneKey$" />
+      <method />
+    </configuration>
+    <configuration default="false" name="TestOnePartition in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB3-KV Raft" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="kvraft" />
+      <pattern value="^TestOnePartition$" />
+      <method />
+    </configuration>
+    <configuration default="false" name="TestManyPartitionsOneClient in test_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true">
+      <module name="LAB3-KV Raft" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="kvraft" />
+      <pattern value="^TestManyPartitionsOneClient$" />
       <method />
     </configuration>
     <configuration default="true" type="#org.jetbrains.idea.devkit.run.PluginConfigurationType" factoryName="Plugin">
@@ -473,12 +541,20 @@
     <configuration default="true" type="osgi.bnd.run" factoryName="Test Launcher (JUnit)">
       <method />
     </configuration>
-    <list size="1">
+    <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Go Test.All in 'kvraft'" />
+      <item index="1" class="java.lang.String" itemvalue="Go Test.TestUnreliable in test_test.go" />
+      <item index="2" class="java.lang.String" itemvalue="Go Test.TestUnreliableOneKey in test_test.go" />
+      <item index="3" class="java.lang.String" itemvalue="Go Test.TestOnePartition in test_test.go" />
+      <item index="4" class="java.lang.String" itemvalue="Go Test.TestManyPartitionsOneClient in test_test.go" />
     </list>
     <recent_temporary>
-      <list size="1">
-        <item index="0" class="java.lang.String" itemvalue="Go Test.All in 'kvraft'" />
+      <list size="5">
+        <item index="0" class="java.lang.String" itemvalue="Go Test.TestUnreliable in test_test.go" />
+        <item index="1" class="java.lang.String" itemvalue="Go Test.TestOnePartition in test_test.go" />
+        <item index="2" class="java.lang.String" itemvalue="Go Test.TestUnreliableOneKey in test_test.go" />
+        <item index="3" class="java.lang.String" itemvalue="Go Test.TestManyPartitionsOneClient in test_test.go" />
+        <item index="4" class="java.lang.String" itemvalue="Go Test.All in 'kvraft'" />
       </list>
     </recent_temporary>
   </component>
@@ -493,44 +569,42 @@
       <option name="presentableId" value="Default" />
       <updated>1488811226077</updated>
       <workItem from="1488811229044" duration="10041000" />
-      <workItem from="1488865767583" duration="7294000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 51m 49s.xml">
+    <history-entry file="All_in_'kvraft' - 2017.03.07 at 21h 56m 17s.xml">
       <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 52m 00s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestManyPartitionsOneClient_in_test_test_go - 2017.03.07 at 22h 00m 11s.xml">
+      <configuration name="TestManyPartitionsOneClient in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 52m 34s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestManyPartitionsOneClient_in_test_test_go - 2017.03.07 at 22h 00m 24s.xml">
+      <configuration name="TestManyPartitionsOneClient in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 52m 51s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestOnePartition_in_test_test_go - 2017.03.07 at 21h 57m 41s.xml">
+      <configuration name="TestOnePartition in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 54m 18s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestOnePartition_in_test_test_go - 2017.03.07 at 22h 39m 04s.xml">
+      <configuration name="TestOnePartition in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 54m 30s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestOnePartition_in_test_test_go - 2017.03.07 at 22h 44m 12s.xml">
+      <configuration name="TestOnePartition in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 17h 55m 57s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestUnreliableOneKey_in_test_test_go - 2017.03.07 at 21h 57m 24s.xml">
+      <configuration name="TestUnreliableOneKey in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 18h 02m 43s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestUnreliableOneKey_in_test_test_go - 2017.03.07 at 22h 38m 53s.xml">
+      <configuration name="TestUnreliableOneKey in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 18h 03m 04s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestUnreliable_in_test_test_go - 2017.03.07 at 22h 38m 33s.xml">
+      <configuration name="TestUnreliable in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="All_in_'kvraft' - 2017.03.07 at 18h 05m 15s.xml">
-      <configuration name="All in 'kvraft'" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestUnreliable_in_test_test_go - 2017.03.07 at 22h 48m 24s.xml">
+      <configuration name="TestUnreliable in test_test.go" configurationId="GoTestRunConfiguration" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="17335000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-9" y="-9" width="1938" height="1048" extended-state="6" />
@@ -540,9 +614,9 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299356" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32896176" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.51609445" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -572,8 +646,21 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/src/kvraft/test_test.go</url>
+          <line>246</line>
+          <properties />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="1" />
+    </breakpoint-manager>
     <watches-manager />
+  </component>
+  <component name="antWorkspaceConfiguration">
+    <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
+    <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/kvraft/server.go">
@@ -623,7 +710,7 @@
         <state relative-caret-position="2640">
           <caret line="80" column="2" selection-start-line="80" selection-start-column="2" selection-end-line="80" selection-end-column="2" />
           <folding>
-            <element signature="e#16#82#0" expanded="true" />
+            <element signature="e#16#90#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -692,47 +779,63 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/kvraft/common.go">
+    <entry file="file://$PROJECT_DIR$/src/raft/config.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="294">
-          <caret line="21" column="5" selection-start-line="21" selection-start-column="5" selection-end-line="21" selection-end-column="5" />
+        <state relative-caret-position="260">
+          <caret line="380" column="17" selection-start-line="380" selection-start-column="17" selection-end-line="380" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/time/format.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3436">
+          <caret line="66" column="4" selection-start-line="66" selection-start-column="4" selection-end-line="66" selection-end-column="4" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/raft/raft.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2446">
-          <caret line="344" column="15" selection-start-line="344" selection-start-column="15" selection-end-line="344" selection-end-column="15" />
+        <state relative-caret-position="-9059">
+          <caret line="65" column="20" selection-start-line="65" selection-start-column="20" selection-end-line="65" selection-end-column="20" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/kvraft/test_test.go">
+    <entry file="file://$PROJECT_DIR$/src/kvraft/common.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="313">
-          <caret line="241" column="35" selection-start-line="241" selection-start-column="35" selection-end-line="241" selection-end-column="35" />
+        <state relative-caret-position="219">
+          <caret line="32" column="5" selection-start-line="32" selection-start-column="5" selection-end-line="32" selection-end-column="5" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/kvraft/client.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="462">
-          <caret line="14" column="1" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
-          <folding>
-            <element signature="e#16#82#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/kvraft/server.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1452">
-          <caret line="95" column="22" selection-start-line="95" selection-start-column="22" selection-end-line="95" selection-end-column="22" />
+        <state relative-caret-position="182">
+          <caret line="62" column="23" selection-start-line="62" selection-start-column="23" selection-end-line="62" selection-end-column="23" />
           <folding>
             <element signature="e#16#83#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/kvraft/client.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="119" column="8" selection-start-line="119" selection-start-column="8" selection-end-line="119" selection-end-column="8" />
+          <folding>
+            <element signature="e#16#90#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/kvraft/test_test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="264">
+          <caret line="248" column="56" selection-start-line="248" selection-start-column="56" selection-end-line="248" selection-end-column="56" />
+          <folding />
         </state>
       </provider>
     </entry>

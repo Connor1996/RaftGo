@@ -23,9 +23,10 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Type    string
-	Key     string
-	Value   string
+	Type        string
+	Key         string
+	Value       string
+	RequestId   int64
 }
 
 type PendingOps struct {
@@ -44,13 +45,16 @@ type RaftKV struct {
 	// Your definitions here.
 	pendingOps  map[int]PendingOps
 	data        map[string]string // linearizable data
+
+	RequestId   int // increase monotonically
 }
 
 
 
 func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
-	index, _, isLeader := kv.rf.Start(Op{"GET", args.Key, ""})
+	operation := Op{"Get", args.Key, "", args.RequestId}
+	index, term, isLeader := kv.rf.Start(operation)
 
 	if !isLeader {
 		reply.WrongLeader = true
@@ -58,9 +62,18 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	} else {
 		reply.WrongLeader = false
 	}
+
+	// detect whether it is ever committed
+	// in the case where rpc can not reply but log is committed before network failed
+	if _, ok := kv.pendingOps[index]; ok {
+		reply.Value = kv.data[args.Key]
+		reply.Err = ""
+		return
+	}
+
 	finishCh := make(chan bool)
 
-	kv.pendingOps[index] = PendingOps{Op{"GET", args.Key, ""}, finishCh}
+	kv.pendingOps[index] = PendingOps{operation, finishCh}
 	select {
 	case <- finishCh:
 		value, ok := kv.data[args.Key]
@@ -71,31 +84,56 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 			reply.Err = "the key doesn't exist"
 		}
 		return
-	case <- time.After(time.Duration(time.Second)):
-		reply.Err = "timeout"
+	case <- time.After(time.Duration(time.Second * 3)):
+		// handle the case in which a leader has called Start() for a client RPC,
+		// but loses its leadership before the request is committed to the log
+		currentTerm, isLeader := kv.rf.GetState()
+		if isLeader == false || currentTerm != term {
+			log.Print("lose leadership")
+			reply.Err = "lose leadership"
+		} else {
+			reply.Err = "timeout"
+		}
 	}
 }
 
 func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
+	index, term, isLeader := kv.rf.Start(operation)
 
-	index, term, isLeader := kv.rf.Start(Op{args.Op, args.Key, args.Value})
-
+	// detect whether it is leader or not
 	if !isLeader {
 		reply.WrongLeader = true
 		return
 	} else {
 		reply.WrongLeader = false
 	}
+
+	// detect whether it is ever committed
+	// in the case where rpc can not reply but log is committed before network failed
+	if _, ok := kv.pendingOps[index]; ok {
+		reply.Err = ""
+		return
+	}
+
 	finishCh := make(chan bool)
 
-	kv.pendingOps[index] = PendingOps{Op{args.Op, args.Key, args.Value}, finishCh}
+	kv.pendingOps[index] = PendingOps{operation, finishCh}
 
 	select {
 	case <- finishCh:
 		reply.Err = ""
-	case <- time.After(time.Duration(time.Second)):
-		reply.Err = "timeout"
+	case <- time.After(time.Duration(time.Second * 3)):
+		// handle the case in which a leader has called Start() for a client RPC,
+		// but loses its leadership before the request is committed to the log
+		currentTerm, isLeader := kv.rf.GetState()
+		if isLeader == false || currentTerm != term {
+			log.Print("lose leadership")
+			reply.Err = "lose leadership"
+		} else {
+			reply.Err = "timeout"
+		}
 	}
 }
 

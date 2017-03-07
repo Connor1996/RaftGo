@@ -342,12 +342,13 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		return -1, -1, false
 	}
 
-	//for i, log := range rf.log {
-	//	// the command is ever committed
-	//	if log.Command == command {
-	//		return i, rf.currentTerm, true
-	//	}
-	//}
+	for i, entry := range rf.log {
+		// the command is ever committed
+		if entry.Command == command {
+			log.Print("equal--------", command)
+			return i, rf.currentTerm, true
+		}
+	}
 
 	rf.log = append(rf.log, LogEntry{rf.currentTerm, command})
 	rf.persist()
@@ -599,7 +600,7 @@ func (rf *Raft) Election() {
 	rf.persist()
 	rf.mu.Unlock()
 
-	//log.Printf("heartbeat timeout server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
+	log.Printf("heartbeat timeout server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
 	args := RequestVoteArgs{rf.currentTerm, rf.me, lastLogIndex, lastLogTerm}
