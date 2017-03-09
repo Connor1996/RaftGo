@@ -92,8 +92,8 @@ type LogEntry struct {
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
+	//rf.mu.Lock()
+	//defer rf.mu.Unlock()
 	// Your code here.
 	return rf.currentTerm, rf.isLeader
 }
@@ -299,14 +299,14 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 			reply.Term = rf.currentTerm
 			reply.CommitIndex = rf.commitIndex
 			rf.persist()
+			//log.Printf("server %v commit index %v is larger than leadercommit %v", rf.me, rf.commitIndex, args.LeaderCommit)
 			return
-			log.Fatalf("server %v commit index %v is larger than leadercommit %v", rf.me, rf.commitIndex, args.LeaderCommit)
 		}
 
 		for rf.lastApplied < rf.commitIndex {
 			// apply to state machine
 			rf.lastApplied++
-			//log.Printf("server %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied])
+			log.Printf("server %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied])
 			rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied].Command, false, nil}
 		}
 
@@ -342,11 +342,14 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		return -1, -1, false
 	}
 
-	for i, entry := range rf.log {
-		// the command is ever committed
+	for _, entry := range rf.log {
+		//if i > rf.commitIndex {
+		//	break
+		//}
+		//// the command is ever committed
 		if entry.Command == command {
 			log.Print("equal--------", command)
-			return i, rf.currentTerm, true
+			return -1, rf.currentTerm, true
 		}
 	}
 
@@ -426,7 +429,7 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 		if reply.CommitIndex > rf.commitIndex && rf.matchIndex[server] > rf.commitIndex {
 			for rf.commitIndex < rf.matchIndex[server] {
 				rf.commitIndex++
-				//log.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
+				log.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
 				rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
 			}
 		}
@@ -600,7 +603,7 @@ func (rf *Raft) Election() {
 	rf.persist()
 	rf.mu.Unlock()
 
-	log.Printf("heartbeat timeout server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
+	//log.Printf("heartbeat timeout server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
 	args := RequestVoteArgs{rf.currentTerm, rf.me, lastLogIndex, lastLogTerm}
@@ -687,7 +690,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 
 	for {
 		if rf.isLeader == false {
-			log.Printf("call broadcast, but server %v is not a leader", rf.me)
+			//log.Printf("call broadcast, but server %v is not a leader", rf.me)
 			return
 		}
 

@@ -66,9 +66,7 @@ func (ck *Clerk) Get(key string) string {
 			if reply.Err == "" {
 				return reply.Value
 			} else if reply.Err == "lose leadership" {
-
-			} else if reply.Err == "the key doesn't exist"{
-				return ""
+				log.Print("lose leadership")
 			} else {
 				log.Print("[ERROR] ", reply.Err)
 			}
@@ -104,20 +102,20 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 		var reply PutAppendReply
 		// You will have to modify this function.
 		if ck.servers[leaderIdx].Call("RaftKV.PutAppend", &args, &reply) == false {
-			log.Printf("put append %v rpc false", args)
+			log.Printf(": put append %v rpc to server %v false", args, leaderIdx)
 		} else if reply.WrongLeader == false {
 			ck.recentLeader = leaderIdx
 			if reply.Err == "" {
+				//log.Print("return ", args)
 				return
 			} else if reply.Err == "lose leadership" {
 
 			} else {
 				log.Print(reply.Err)
 			}
-
 		}
 		leaderIdx = (leaderIdx + 1) % len(ck.servers)
-		log.Print("loop")
+		//log.Print("loop", args)
 	}
 }
 
