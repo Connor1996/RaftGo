@@ -7,6 +7,7 @@ import (
 	"raft"
 	"sync"
 	"time"
+	"bytes"
 )
 
 const Debug = 0
@@ -40,6 +41,7 @@ type RaftKV struct {
 	rf      *raft.Raft
 	applyCh chan raft.ApplyMsg
 
+	persister *raft.Persister
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
@@ -88,7 +90,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
-	for {
+	//for {
 		select {
 		case msg := <- finishCh:
 			if msg {
@@ -110,13 +112,13 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 			// but loses its leadership before the request is committed to the log
 			currentTerm, isLeader := kv.rf.GetState()
 			if isLeader == false || currentTerm != term {
-				log.Print("lose leadership")
 				reply.Err = "lose leadership"
 				return
 			}
+			reply.Err = "timeout"
 			log.Print(kv.me,": timeout put append ", args)
 		}
-	}
+	//}
 }
 
 func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -154,7 +156,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
-	for {
+	//for {
 		select {
 		case msg := <-finishCh:
 			//log.Print("finish ", args, kv.me)
@@ -173,9 +175,10 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 				reply.Err = "lose leadership"
 				return
 			}
+			reply.Err = "timeout"
 			log.Print(kv.me,": timeout put append ", args)
 		}
-	}
+	//}
 }
 
 //
@@ -210,14 +213,17 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv := new(RaftKV)
 	kv.me = me
 	kv.maxraftstate = maxraftstate
+	kv.persister = persister
 
 	// Your initialization code here.
-
+	log.Print("init ------------------", kv.me)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.data = make(map[string]string)
 	kv.pendingChs = make(map[int64]chan bool)
 	kv.marked = make(map[int64]bool)
+
+	kv.readPersist(kv.persister.ReadSnapshot())
 
 	go kv.ReceiveApply()
 
@@ -233,12 +239,14 @@ func (kv *RaftKV) ReceiveApply() {
 
 		kv.mu.Lock()
 		if kv.marked[command.RequestId] == true {
-			log.Print(kv.me, ": already finish operation", command)
+			//log.Print(kv.me, ": already finish operation", command)
 		} else {
 			if command.Type == "Put" {
 				kv.data[command.Key] = command.Value
+				log.Print(kv.me, "---put: ", command.Key, command.Value)
 			} else if command.Type == "Append" {
 				kv.data[command.Key] += command.Value
+				log.Print(kv.me, "---append: ", command.Key, command.Value)
 			}
 			kv.marked[command.RequestId] = true
 			if _, isLeader := kv.rf.GetState(); isLeader {
@@ -246,27 +254,37 @@ func (kv *RaftKV) ReceiveApply() {
 					ch <- true
 				}
 			}
+
+			kv.persist()
 		}
 		kv.mu.Unlock()
-	}
-			//} else if op, ok := kv.pendingOps[idx]; !ok {
-		//	//log.Printf("already finish pending operation index %v", idx)
-		//} else if command != op.request {
-		//	log.Print("!!!!!!!!!!!!")
-		//	op.channel <- false
-		//} else {
-		//	if op.request.Type == "Put" {
-		//		kv.data[op.request.Key] = op.request.Value
-		//		log.Print(kv.me, "---put: ", op.request.Key, op.request.Value)
-		//	} else if op.request.Type == "Append" {
-		//		// if key does not exist, act like put
-		//		kv.data[op.request.Key] += op.request.Value
-		//		log.Print(kv.me, "---append: ", op.request.Key, op.request.Value)
-		//	}
-		//	delete(kv.pendingOps, idx)
-		//	kv.marked[command.RequestId] = true
-		//	op.channel <- true
-		//}
-		//kv.mu.Unlock()
 
+		// check state size to make snapshot
+		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
+			kv.persist()
+			log.Print("making snapshot")//kv.rf.AppendEntries()
+		}
+	}
 }
+
+//
+// save previously persisted state
+//
+func (kv *RaftKV) persist() {
+	writeBuffer := new(bytes.Buffer)
+	encoder := gob.NewEncoder(writeBuffer)
+	encoder.Encode(&kv.data)
+	encoder.Encode(&kv.marked)
+	kv.persister.SaveSnapshot(writeBuffer.Bytes())
+}
+
+//
+// restore previously persisted state.
+//
+func (kv *RaftKV) readPersist(data []byte) {
+	readBuffer := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(readBuffer)
+	decoder.Decode(&kv.data)
+	decoder.Decode(&kv.marked)
+}
+

@@ -177,13 +177,13 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	}
 
 	if (args.Term > rf.currentTerm && rf.isLeader == true) {
-		log.Printf("args term is %v from server %v, server %vreturn to follow state", args.Term, args.CandidateId, rf.me)
+		log.Printf("args term is %v from server %v, server %v return to follow state", args.Term, args.CandidateId, rf.me)
 		rf.isLeader = false
 	}
 
 	if (args.Term > rf.currentTerm || (args.Term == rf.currentTerm && (rf.votedFor == -1 || rf.votedFor == args.CandidateId))) &&
 		(args.LastLogTerm > lastLogTerm || (args.LastLogTerm == lastLogTerm && args.LastLogIndex >= lastLogIndex)) {
-		//log.Printf("server %v vote for candidate %v in term %v", rf.me, args.CandidateId, rf.currentTerm, rf.isLeader)
+		log.Printf("server %v vote for candidate %v in term %v, since %v %v", rf.me, args.CandidateId, rf.currentTerm, args.LastLogTerm, lastLogTerm, args.LastLogIndex, lastLogIndex)
 		reply.VoteGranted = true
 		rf.votedFor = args.CandidateId
 		rf.currentTerm = args.Term
@@ -258,8 +258,15 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		rf.currentTerm = args.Term
 		rf.votedFor = args.LeaderId
 		reply.Term = rf.currentTerm
+		rf.persist()
 
 		if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevlogTerm {
+			if args.PrevLogIndex + len(args.Entries) < rf.commitIndex {
+				reply.Success = true
+				reply.CommitIndex = rf.commitIndex
+				log.Printf("!!!!!!!!!! leader %v to server %v, index %v, len %v, but my commit is %v", args.LeaderId, rf.me, args.PrevLogIndex, len(args.Entries), rf.commitIndex)
+				return
+			}
 			// follower contained entry matching prevLogIndex and prevLogTerm
 			reply.Success = true
 			// append new entries to the point where the leader and follower logs match
@@ -283,7 +290,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 				index = len(rf.log) - 1
 			}
 
-			reply.CommitIndex = index + 1
+			reply.CommitIndex = index
 			return
 		}
 
@@ -342,10 +349,10 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		return -1, -1, false
 	}
 
-	for _, entry := range rf.log {
-		//if i > rf.commitIndex {
-		//	break
-		//}
+	for i, entry := range rf.log {
+		if i > rf.commitIndex {
+			break
+		}
 		//// the command is ever committed
 		if entry.Command == command {
 			log.Print("equal--------", command)
@@ -375,7 +382,7 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 	rf.locker[server].Lock()
 
 	if rf.isLeader == false {
-		log.Printf("server %v is not leader any more ", rf.me)
+		//log.Printf("server %v is not leader any more ", rf.me)
 		rf.locker[server].Unlock()
 		return
 	}
@@ -419,25 +426,30 @@ func (rf *Raft) Sync(server int) (ok bool,term int) {
 	if reply.Term > rf.currentTerm {
 		// do nothing because leader is stale
 		//log.Printf("leader %v is stale since reply from server %v term %v", rf.me, server, reply.Term)
-
 		return true, reply.Term
+	} else if reply.Term < rf.currentTerm {
+		return false, reply.Term
 	}
 
 	if reply.Success {
 		// update nextIndex and matchIndex for follower
-		rf.matchIndex[server] = args.PrevLogIndex + len(args.Entries)
-		if reply.CommitIndex > rf.commitIndex && rf.matchIndex[server] > rf.commitIndex {
-			for rf.commitIndex < rf.matchIndex[server] {
+
+		if reply.CommitIndex > rf.commitIndex  {
+			for rf.commitIndex < reply.CommitIndex {
 				rf.commitIndex++
 				log.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
 				rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
 			}
+			rf.matchIndex[server] = reply.CommitIndex
+			rf.nextIndex[server] = rf.matchIndex[server] + 1
+		} else {
+			rf.matchIndex[server] = args.PrevLogIndex + len(args.Entries)
+			rf.nextIndex[server] = rf.matchIndex[server] + 1
 		}
-		rf.nextIndex[server] = rf.matchIndex[server] + 1
 
 	} else if reply.Term == rf.currentTerm {
 		// decrement nextIndex and retry
-		rf.nextIndex[server] = reply.CommitIndex
+		rf.nextIndex[server] = reply.CommitIndex + 1
 		//log.Printf("leader %v decrement nextIndex[%v] to %v",rf.me, server, rf.nextIndex[server])
 	} else {
 		//log.Print("success is false and reply.term < rf.currentTerm")
@@ -691,6 +703,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 	for {
 		if rf.isLeader == false {
 			//log.Printf("call broadcast, but server %v is not a leader", rf.me)
+			go rf.HeartBeatTimer()
 			return
 		}
 
