@@ -2,8 +2,6 @@ package raft
 
 import (
 	"time"
-	"log"
-	"runtime/debug"
 )
 
 //
@@ -28,14 +26,14 @@ func (rf *Raft) HeartBeatTimer() {
 			return
 		}
 
-		if rf.role != FOLLOWER {
-			debug.PrintStack()
-
-			if rf.role == CANDIDATE {
-				log.Fatalf("[ERROR] %v call heartBeatTimer, but I'm not a follower but a candidate", rf.me)
-			} else {
-				log.Fatalf("[ERROR] %v call heartBeatTimer, but I'm not a follower but a leader", rf.me)
-			}
-		}
+		//if rf.role != FOLLOWER {
+		//	debug.PrintStack()
+		//
+		//	if rf.role == CANDIDATE {
+		//		rf.logger.Fatalf("[ERROR] %v call heartBeatTimer, but I'm not a follower but a candidate", rf.me)
+		//	} else {
+		//		rf.logger.Fatalf("[ERROR] %v call heartBeatTimer, but I'm not a follower but a leader", rf.me)
+		//	}
+		//}
 	}
 }

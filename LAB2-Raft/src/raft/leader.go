@@ -1,7 +1,6 @@
 package raft
 
 import (
-	"log"
 	"time"
 )
 
@@ -65,7 +64,7 @@ func (rf *Raft) Commit() {
 	// update commmit index to upperbound
 	for rf.commitIndex < upperBound {
 		rf.commitIndex++
-		log.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
+		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
 		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
 	}
 
@@ -77,7 +76,7 @@ func (rf *Raft) Sync(server int) {
 	rf.locker[server].Lock()
 
 	if rf.role != LEADER {
-		log.Printf("server %v is not leader any more ", rf.me)
+		rf.logger.Printf("server %v is not leader any more ", rf.me)
 		rf.locker[server].Unlock()
 		return
 	}
@@ -91,10 +90,10 @@ func (rf *Raft) Sync(server int) {
 		entries = rf.log[rf.nextIndex[server] : ]
 	} else {
 		// nothing to send, namely sending heartbeat
-		//log.Printf("leader %v send heartbeat to server %v", rf.me, server)
+		//rf.logger.Printf("leader %v send heartbeat to server %v", rf.me, server)
 	}
 
-	//log.Printf("PrevLogIndex: %v, length of log: %v in leader %v", rf.nextIndex[server] - 1, len(rf.log), rf.me)
+	//rf.logger.Printf("PrevLogIndex: %v, length of log: %v in leader %v", rf.nextIndex[server] - 1, len(rf.log), rf.me)
 	args := AppendEntriesArgs {
 		Term: rf.currentTerm,
 		LeaderId: rf.me,
@@ -110,7 +109,7 @@ func (rf *Raft) Sync(server int) {
 	//term := rf.currentTerm
 	if rf.sendAppendEntries(server, args, reply) == false {
 		if (len(args.Entries) != 0) {
-			//log.Printf("leader %v append log to server %v failed in term %v", rf.me, server, term)
+			//rf.logger.Printf("leader %v append log to server %v failed in term %v", rf.me, server, term)
 		}
 		return
 	} else if reply.Term < rf.currentTerm {
@@ -122,7 +121,7 @@ func (rf *Raft) Sync(server int) {
 			// response contains term T > currentTerm
 			// set currentTerm = T, convert to follower
 
-			log.Printf("leader %v in term %v receive AppendEntries response from server %v with higher term %v",
+			rf.logger.Printf("leader %v in term %v receive AppendEntries response from server %v with higher term %v",
 				rf.me, rf.currentTerm, server, reply.Term)
 			rf.currentTerm = reply.Term
 			rf.votedFor = server
@@ -146,7 +145,7 @@ func (rf *Raft) Sync(server int) {
 		//if reply.CommitIndex > rf.commitIndex && rf.matchIndex[server] > rf.commitIndex {
 		//	for rf.commitIndex < rf.matchIndex[server] {
 		//		rf.commitIndex++
-		//		//log.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
+		//		//rf.logger.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
 		//		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
 		//	}
 		//}
@@ -155,7 +154,7 @@ func (rf *Raft) Sync(server int) {
 		// fail because of log inconsistency, then decrement nextIndex and retry
 		if (reply.ConflictIndex > 0) {
 			rf.nextIndex[server] = reply.ConflictIndex
-			log.Printf("update nextIndex to %v for server %v", rf.nextIndex[server], server)
+			rf.logger.Printf("update nextIndex to %v for server %v", rf.nextIndex[server], server)
 		} else {
 			// fail because of stale
 		}
@@ -185,16 +184,16 @@ func (rf *Raft) BroadCastHeartBeat() {
 		select {
 		case  <- rf.staleSignal:
 			rf.role = FOLLOWER
-			log.Printf("leader %v convert to follower in term %v", rf.me, rf.currentTerm)
+			rf.logger.Printf("leader %v convert to follower in term %v", rf.me, rf.currentTerm)
 			go rf.HeartBeatTimer()
 			return
 		case <-time.After(interval):
-		//log.Print("fuck")
+		//rf.logger.Print("fuck")
 		}
 
 		//if rf.role != LEADER {
 		//	debug.PrintStack()
-		//	log.Fatalf("[ERROR] call broadcast, but server %v in term %v is not a leader", rf.me, rf.currentTerm)
+		//	rf.logger.Fatalf("[ERROR] call broadcast, but server %v in term %v is not a leader", rf.me, rf.currentTerm)
 		//}
 	}
 }
