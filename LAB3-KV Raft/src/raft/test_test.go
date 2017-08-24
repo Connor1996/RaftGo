@@ -757,6 +757,7 @@ func TestFigure8Unreliable(t *testing.T) {
 	nup := servers
 	for iters := 0; iters < 1000; iters++ {
 		if iters == 200 {
+			log.Print("------------set long reordering----------")
 			cfg.setlongreordering(true)
 		}
 		leader := -1
@@ -775,7 +776,9 @@ func TestFigure8Unreliable(t *testing.T) {
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 		}
 
+
 		if leader != -1 && (rand.Int()%1000) < int(RaftElectionTimeout/time.Millisecond)/2 {
+			log.Printf("------------disconnect leader %v----------", leader)
 			cfg.disconnect(leader)
 			nup -= 1
 		}
@@ -783,12 +786,14 @@ func TestFigure8Unreliable(t *testing.T) {
 		if nup < 3 {
 			s := rand.Int() % servers
 			if cfg.connected[s] == false {
+				log.Printf("------------reconnect server %v----------", s)
 				cfg.connect(s)
 				nup += 1
 			}
 		}
 	}
 
+	log.Print("------------reconnect all----------")
 	for i := 0; i < servers; i++ {
 		if cfg.connected[i] == false {
 			cfg.connect(i)
@@ -941,7 +946,6 @@ func internalChurn(t *testing.T, unreliable bool) {
 			cfg.t.Fatalf("didn't find a value")
 		}
 	}
-
 	fmt.Printf("  ... Passed\n")
 }
 

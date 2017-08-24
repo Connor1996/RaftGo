@@ -63,10 +63,10 @@ func (ck *Clerk) Get(key string) string {
 			//log.Print("get rpc false")
 		} else if reply.WrongLeader == false {
 			ck.recentLeader = leaderIdx
-			if reply.Err == "" {
+			if reply.Err == OK {
 				return reply.Value
 			} else {
-				log.Print("[ERROR] ", reply.Err)
+				log.Printf("[ERROR] %v", reply.Err)
 			}
 		}
 		leaderIdx = (leaderIdx + 1) % len(ck.servers)
@@ -103,15 +103,14 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			//log.Printf(": put append %v rpc to server %v false", args, leaderIdx)
 		} else if reply.WrongLeader == false {
 			ck.recentLeader = leaderIdx
-			if reply.Err == "" {
+			if reply.Err == OK {
 				//log.Print("return ", args)
 				return
 			} else {
-				log.Print(reply.Err)
+				log.Printf("[ERROR] %v", reply.Err)
 			}
 		}
 		leaderIdx = (leaderIdx + 1) % len(ck.servers)
-		//log.Print("loop", args)
 	}
 }
 

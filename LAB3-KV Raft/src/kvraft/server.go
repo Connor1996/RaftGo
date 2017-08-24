@@ -62,15 +62,15 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	kv.mu.Lock()
 	if kv.marked[args.RequestId] == true {
 		reply.Value = kv.data[args.Key]
-		reply.Err = ""
-		log.Print("already commit", args)
+		reply.WrongLeader = false
+		reply.Err = OK
 		kv.mu.Unlock()
 		return
 	}
 	kv.mu.Unlock()
 
 	operation := Op{"Get", args.Key, "", args.RequestId}
-	index, term, isLeader := kv.rf.Start(operation)
+	_, term, isLeader := kv.rf.Start(operation)
 
 	if !isLeader {
 		reply.WrongLeader = true
@@ -80,17 +80,11 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	}
 
 	kv.mu.Lock()
-	if index == -1 {
-		reply.Value = kv.data[args.Key]
-		reply.Err = ""
-		kv.mu.Unlock()
-		return
-	}
 	finishCh := make(chan bool, 1)
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
-	//for {
+	for {
 		select {
 		case msg := <- finishCh:
 			if msg {
@@ -98,13 +92,13 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 				value, ok := kv.data[args.Key]
 				kv.mu.Unlock()
 				if ok {
+					reply.Err = OK
 					reply.Value = value
 				} else {
-					reply.Value = ""
+					reply.Err = ErrNoKey
 				}
-				reply.Err = ""
 			} else {
-				reply.Err = "lose leadership"
+				reply.Err = "error"
 			}
 			return
 		case <- time.After(time.Duration(time.Second)):
@@ -112,13 +106,11 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 			// but loses its leadership before the request is committed to the log
 			currentTerm, isLeader := kv.rf.GetState()
 			if isLeader == false || currentTerm != term {
-				reply.Err = "lose leadership"
+				reply.Err = ErrLoseLeader
 				return
 			}
-			reply.Err = "timeout"
-			log.Print(kv.me,": timeout put append ", args)
 		}
-	//}
+	}
 }
 
 func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -128,15 +120,15 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// in the case where rpc can not reply but log is committed before network failed
 	kv.mu.Lock()
 	if kv.marked[args.RequestId] == true {
-		log.Print("already commit", args)
-		reply.Err = ""
+		reply.WrongLeader = false
+		reply.Err = OK
 		kv.mu.Unlock()
 		return
 	}
 	kv.mu.Unlock()
 
 	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
-	index, term, isLeader := kv.rf.Start(operation)
+	_, term, isLeader := kv.rf.Start(operation)
 
 	// detect whether it is leader or not
 	if !isLeader {
@@ -147,23 +139,18 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	}
 
 	kv.mu.Lock()
-	if index == -1 {
-		reply.Err = ""
-		kv.mu.Unlock()
-		return
-	}
 	finishCh := make(chan bool, 1)
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
-	//for {
+	for {
 		select {
 		case msg := <-finishCh:
 			//log.Print("finish ", args, kv.me)
 			if msg {
-				reply.Err = ""
+				reply.Err = OK
 			} else {
-				reply.Err = "lose leadership"
+				reply.Err = "error"
 			}
 			return
 		case <-time.After(time.Duration(time.Second)):
@@ -171,14 +158,11 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 			// but loses its leadership before the request is committed to the log
 			currentTerm, isLeader := kv.rf.GetState()
 			if isLeader == false || currentTerm != term {
-				log.Print("lose leadership")
-				reply.Err = "lose leadership"
+				reply.Err = ErrLoseLeader
 				return
 			}
-			reply.Err = "timeout"
-			log.Print(kv.me,": timeout put append ", args)
 		}
-	//}
+	}
 }
 
 //
@@ -243,27 +227,25 @@ func (kv *RaftKV) ReceiveApply() {
 		} else {
 			if command.Type == "Put" {
 				kv.data[command.Key] = command.Value
-				log.Print(kv.me, "---put: ", command.Key, command.Value)
 			} else if command.Type == "Append" {
 				kv.data[command.Key] += command.Value
-				log.Print(kv.me, "---append: ", command.Key, command.Value)
 			}
-			kv.marked[command.RequestId] = true
-			if _, isLeader := kv.rf.GetState(); isLeader {
-				if ch, ok := kv.pendingChs[command.RequestId]; ok {
-					ch <- true
-				}
-			}
+			log.Printf("kvserver %v finish: %v", kv.me, command)
 
+			kv.marked[command.RequestId] = true
+			if ch, ok := kv.pendingChs[command.RequestId]; ok {
+				ch <- true
+			}
+			delete(kv.pendingChs, command.RequestId)
 			kv.persist()
 		}
 		kv.mu.Unlock()
 
 		// check state size to make snapshot
-		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
-			kv.persist()
-			log.Print("making snapshot")//kv.rf.AppendEntries()
-		}
+		//if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
+		//	kv.persist()
+		//	log.Print("making snapshot")//kv.rf.AppendEntries()
+		//}
 	}
 }
 
