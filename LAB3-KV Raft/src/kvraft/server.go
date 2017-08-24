@@ -7,11 +7,10 @@ import (
 	"raft"
 	"sync"
 	"time"
-	"io/ioutil"
 	"bytes"
 )
 
-const Debug = 0
+const Debug = 1
 
 func DPrintf(format string, a ...interface{}) (n int, err error) {
 	if Debug > 0 {
@@ -72,7 +71,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 
 	operation := Op{"Get", args.Key, "", args.RequestId}
 	finishCh := make(chan bool, 1)
-	//log.Printf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
 	kv.mu.Lock()
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
@@ -106,7 +105,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 			} else {
 				reply.Err = "error"
 			}
-			log.Printf("kvserver %v return request: %v", kv.me, args)
+			DPrintf("kvserver %v return request: %v", kv.me, args)
 			return
 		case <- time.After(time.Duration(time.Second)):
 			// handle the case in which a leader has called Start() for a client RPC,
@@ -116,7 +115,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
-			log.Print("loop...")
+			DPrintf("loop...")
 		}
 	}
 }
@@ -137,7 +136,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 
 	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
 	finishCh := make(chan bool, 1)
-	//log.Printf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
 	kv.mu.Lock()
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
@@ -163,7 +162,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 			} else {
 				reply.Err = "error"
 			}
-			log.Printf("kvserver %v return request: %v", kv.me, args)
+			DPrintf("kvserver %v return request: %v", kv.me, args)
 			return
 		case <-time.After(time.Duration(time.Second)):
 			// handle the case in which a leader has called Start() for a client RPC,
@@ -173,7 +172,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
-			log.Print("loop...")
+			DPrintf("loop...")
 		}
 	}
 }
@@ -197,7 +196,7 @@ func (kv *RaftKV) Kill() {
 // the k/v server should store snapshots with persister.SaveSnapshot(),
 // and Raft should save its state (including log) with persister.SaveRaftState().
 // the k/v server should snapshot when Raft's saved state exceeds maxraftstate bytes,
-// in order to allow Raft to garbage-collect its log. if maxraftstate is -1,
+// in order to allow Raft to garbage-collect its D if maxraftstate is -1,
 // you don't need to snapshot.
 // StartKVServer() must return quickly, so it should start goroutines
 // for any long-running work.
@@ -207,15 +206,12 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	// Go's RPC library to marshall/unmarshall.
 	gob.Register(Op{})
 
-	log.SetOutput(ioutil.Discard)
-
 	kv := new(RaftKV)
 	kv.me = me
 	kv.maxraftstate = maxraftstate
 	kv.persister = persister
 
 	// Your initialization code here.
-	log.Print("init ------------------", kv.me)
 	kv.applyCh = make(chan raft.ApplyMsg, 1)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.data = make(map[string]string)
@@ -238,14 +234,14 @@ func (kv *RaftKV) ReceiveApply() {
 
 		kv.mu.Lock()
 		if _, ok := kv.marked[command.RequestId]; ok {
-			//log.Print(kv.me, ": already finish operation", command)
+			//DPrint(kv.me, ": already finish operation", command)
 		} else {
 			if command.Type == "Put" {
 				kv.data[command.Key] = command.Value
 			} else if command.Type == "Append" {
 				kv.data[command.Key] += command.Value
 			}
-			log.Printf("kvserver %v finish: %v", kv.me, command)
+			DPrintf("kvserver %v finish: %v", kv.me, command)
 
 			kv.marked[command.RequestId] = true
 
@@ -258,7 +254,7 @@ func (kv *RaftKV) ReceiveApply() {
 
 		// check state size to make snapshot
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
-			log.Printf("server %v making snapshot", kv.me)
+			DPrintf("server %v making snapshot", kv.me)
 			kv.persist()
 			go kv.rf.DeleteOldEntries(index)
 		}

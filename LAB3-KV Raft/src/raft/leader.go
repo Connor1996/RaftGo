@@ -2,6 +2,7 @@ package raft
 
 import (
 	"time"
+	"log"
 )
 
 func (rf *Raft) Commit() {
@@ -85,13 +86,15 @@ func (rf *Raft) Sync(server int) {
 		return
 	}
 
+	rf.mu.Lock()
 	// take offset into account
 	lastLogIndex := len(rf.log) + rf.lastIncludedIndex
 	var entries []LogEntry
 
 	// if last log index >= nextIndex
 	// send AppendEntries RPC with log entries starting at nextIndex
-	if lastLogIndex >= rf.nextIndex[server] {
+	log.Printf("leader %v: nextIndex[%v]:%v, lastIncludedIndex:%v", rf.me, server, rf.nextIndex[server], rf.lastIncludedIndex)
+	if lastLogIndex >= rf.nextIndex[server]  {
 		entries = rf.log[rf.nextIndex[server] - rf.lastIncludedIndex - 1: ]
 	} else {
 		// nothing to send, namely sending heartbeat
@@ -112,7 +115,7 @@ func (rf *Raft) Sync(server int) {
 		args.PrevlogTerm = rf.lastIncludedTerm
 	}
 	rf.locker[server].Unlock()
-
+	rf.mu.Unlock()
 
 	reply := new(AppendEntriesReply)
 	//term := rf.currentTerm
@@ -213,6 +216,7 @@ func (rf *Raft) DeleteOldEntries(lastIndex int) {
 	// update info
 	rf.lastIncludedTerm = rf.log[lastIndex - rf.lastIncludedIndex - 1].Term
 	rf.log = rf.log[lastIndex - rf.lastIncludedIndex : ]
+	rf.logger.Printf("server %v update lastIncludedIndex to %v", rf.me, lastIndex)
 	rf.lastIncludedIndex = lastIndex
 
 

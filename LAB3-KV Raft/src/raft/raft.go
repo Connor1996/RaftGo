@@ -398,6 +398,31 @@ func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *App
 	return ok
 }
 
+type InstallSnapshotArgs struct {
+	Term                int
+	LeaderId            int // so follower can redirect client
+	LastIncludedIndex   int
+	LastIncludedTerm    int
+	data                []byte // little change from paper, not split into chunck
+}
+
+type InstallSnapshotReply struct {
+	Term        int
+}
+
+//
+// InstallSnapshot RPC handler
+//
+func (rf *Raft) InstallSnapshot(args AppendEntriesArgs, reply *AppendEntriesReply) {
+
+	return
+}
+
+func (rf *Raft) sendInstallSnapshot(server int, args InstallSnapshotArgs, reply *InstallSnapshotReply) bool {
+	ok := rf.peers[server].Call("Raft.InstallSnapshot", args, reply)
+	return ok
+}
+
 
 //
 // the service using Raft (e.g. a k/v server) wants to start
