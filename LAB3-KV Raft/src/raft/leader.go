@@ -27,11 +27,14 @@ func (rf *Raft) Commit() {
 		return
 	}
 
+	// take offset into account
+	index += rf.lastIncludedIndex + 1
+
 	// find the upper bound where
 	// index > commitIndex, a majority of matchIndex[i] >= N
 	// and log[N].term == currentTerm
 	upperBound := index
-	for upperBound < len(rf.log) {
+	for upperBound < len(rf.log) + rf.lastIncludedIndex + 1{
 		count := 1 // the number of servers that have given entry(include itself)
 		isSafe := false
 		for i := range rf.peers {
@@ -64,8 +67,9 @@ func (rf *Raft) Commit() {
 	// update commmit index to upperbound
 	for rf.commitIndex < upperBound {
 		rf.commitIndex++
-		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
-		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
+		// take offset into account
+		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex - rf.lastIncludedIndex - 1])
+		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex - rf.lastIncludedIndex - 1].Command, false, nil}
 	}
 
 }
@@ -81,13 +85,14 @@ func (rf *Raft) Sync(server int) {
 		return
 	}
 
-	lastLogIndex := len(rf.log) - 1
+	// take offset into account
+	lastLogIndex := len(rf.log) + rf.lastIncludedIndex
 	var entries []LogEntry
 
 	// if last log index >= nextIndex
 	// send AppendEntries RPC with log entries starting at nextIndex
 	if lastLogIndex >= rf.nextIndex[server] {
-		entries = rf.log[rf.nextIndex[server] : ]
+		entries = rf.log[rf.nextIndex[server] - rf.lastIncludedIndex - 1: ]
 	} else {
 		// nothing to send, namely sending heartbeat
 		//rf.logger.Printf("leader %v send heartbeat to server %v", rf.me, server)
@@ -98,9 +103,13 @@ func (rf *Raft) Sync(server int) {
 		Term: rf.currentTerm,
 		LeaderId: rf.me,
 		PrevLogIndex: rf.nextIndex[server] - 1,
-		PrevlogTerm: rf.log[rf.nextIndex[server] - 1].Term,
 		Entries: entries,
 		LeaderCommit: rf.commitIndex,
+	}
+	// take offset into account
+	// to support the AppendEntries consistency check for the first log entry following the snapshot
+	if args.PrevLogIndex == rf.lastIncludedIndex  {
+		args.PrevlogTerm = rf.lastIncludedTerm
 	}
 	rf.locker[server].Unlock()
 
@@ -141,14 +150,6 @@ func (rf *Raft) Sync(server int) {
 		// update nextIndex and matchIndex for follower
 		rf.matchIndex[server] = args.PrevLogIndex + len(args.Entries)
 		rf.nextIndex[server] = rf.matchIndex[server] + 1
-
-		//if reply.CommitIndex > rf.commitIndex && rf.matchIndex[server] > rf.commitIndex {
-		//	for rf.commitIndex < rf.matchIndex[server] {
-		//		rf.commitIndex++
-		//		//rf.logger.Printf("smaller than, ------leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex])
-		//		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex].Command, false, nil}
-		//	}
-		//}
 
 	} else {
 		// fail because of log inconsistency, then decrement nextIndex and retry
@@ -196,4 +197,25 @@ func (rf *Raft) BroadCastHeartBeat() {
 		//	rf.logger.Fatalf("[ERROR] call broadcast, but server %v in term %v is not a leader", rf.me, rf.currentTerm)
 		//}
 	}
+}
+
+func (rf *Raft) DeleteOldEntries(lastIndex int) {
+	rf.mu.Lock()
+	defer rf.mu.Lock()
+
+	if lastIndex < rf.lastIncludedIndex {
+		rf.logger.Printf("server %v already snapshot", rf.me)
+		return
+	}
+
+	rf.logger.Printf("server %v delete old log %v-%v", rf.me, rf.lastIncludedIndex + 1, lastIndex)
+
+	// update info
+	rf.lastIncludedTerm = rf.log[lastIndex - rf.lastIncludedIndex - 1].Term
+	rf.log = rf.log[lastIndex - rf.lastIncludedIndex : ]
+	rf.lastIncludedIndex = lastIndex
+
+
+	rf.persist()
+
 }

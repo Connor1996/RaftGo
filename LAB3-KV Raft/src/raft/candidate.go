@@ -94,8 +94,9 @@ func (rf *Raft) Election() {
 		rf.matchIndex = make([]int, len(rf.peers))
 		rf.nextIndex = make([]int, len(rf.peers))
 		for i := 0; i < len(rf.peers); i++ {
-			rf.nextIndex[i] = len(rf.log)
-			rf.matchIndex[i] = 0
+			// take offset into account
+			rf.nextIndex[i] = len(rf.log) + rf.lastIncludedIndex + 1
+			rf.matchIndex[i] = -1
 		}
 		rf.mu.Unlock()
 		go rf.BroadCastHeartBeat()

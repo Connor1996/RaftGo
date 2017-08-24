@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"io/ioutil"
+	"bytes"
 )
 
 const Debug = 0
@@ -233,7 +234,7 @@ func (kv *RaftKV) ReceiveApply() {
 
 	for {
 		msg = <-kv.applyCh
-		_, command := msg.Index, msg.Command.(Op)
+		index, command := msg.Index, msg.Command.(Op)
 
 		kv.mu.Lock()
 		if _, ok := kv.marked[command.RequestId]; ok {
@@ -249,43 +250,39 @@ func (kv *RaftKV) ReceiveApply() {
 			kv.marked[command.RequestId] = true
 
 			if ch, ok := kv.pendingChs[command.RequestId]; ok {
-				//log.Printf("kvserver leader %v get to the channel: %v", kv.me, command)
 				ch <- true
-				//log.Print("over!!!")
-			} else {
-				//log.Printf("kvserver %v: pendingChs[%v] not exist", kv.me, command.RequestId)
+				delete(kv.pendingChs, command.RequestId)
 			}
-			//delete(kv.pendingChs, command.RequestId)
-			//kv.persist()
 		}
 		kv.mu.Unlock()
 
 		// check state size to make snapshot
-		//if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
-		//	kv.persist()
-		//	log.Print("making snapshot")//kv.rf.AppendEntries()
-		//}
+		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
+			log.Printf("server %v making snapshot", kv.me)
+			kv.persist()
+			go kv.rf.DeleteOldEntries(index)
+		}
 	}
 }
 
 //
 // save previously persisted state
 //
-//func (kv *RaftKV) persist() {
-//	writeBuffer := new(bytes.Buffer)
-//	encoder := gob.NewEncoder(writeBuffer)
-//	encoder.Encode(&kv.data)
-//	encoder.Encode(&kv.marked)
-//	kv.persister.SaveSnapshot(writeBuffer.Bytes())
-//}
+func (kv *RaftKV) persist() {
+	writeBuffer := new(bytes.Buffer)
+	encoder := gob.NewEncoder(writeBuffer)
+	encoder.Encode(&kv.data)
+	encoder.Encode(&kv.marked)
+	kv.persister.SaveSnapshot(writeBuffer.Bytes())
+}
 
 //
 // restore previously persisted state.
 //
-//func (kv *RaftKV) readPersist(data []byte) {
-//	readBuffer := bytes.NewBuffer(data)
-//	decoder := gob.NewDecoder(readBuffer)
-//	decoder.Decode(&kv.data)
-//	decoder.Decode(&kv.marked)
-//}
+func (kv *RaftKV) readPersist(data []byte) {
+	readBuffer := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(readBuffer)
+	decoder.Decode(&kv.data)
+	decoder.Decode(&kv.marked)
+}
 

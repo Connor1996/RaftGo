@@ -62,7 +62,7 @@ type ApplyMsg struct {
 
 type HeartBeatMsg struct {
 	Term        int
-	ServerId          int
+	ServerId    int
 }
 //
 // A Go object implementing a single Raft peer.
@@ -73,19 +73,21 @@ type Raft struct {
 	persister *Persister
 	me        int // index into peers[]
 
-                  // Your data here.
-                  // Look at the paper's Figure 2 for a description of what
-                  // state a Raft server must maintain.
+	// Your data here.
+	// Look at the paper's Figure 2 for a description of what
+	// state a Raft server must maintain.
 	role        Role
 	applyCh     chan ApplyMsg
 	heartBeatCh chan HeartBeatMsg
 	rander      *rand.Rand
 	locker      []sync.Mutex
 
-                  // persistent state on all servers
-	currentTerm int
-	votedFor    int // candidateId that received vote in current term(or -1 if none)
-	log         []LogEntry
+    // persistent state on all servers
+	currentTerm         int
+	votedFor            int     // candidateId that received vote in current term(or -1 if none)
+	log                 []LogEntry
+	lastIncludedIndex   int     // the index of the last entry in the log that the snapshot replace
+	lastIncludedTerm    int     // the term of lastIncludedIndex
 
 	// volatile state on all servers
 	commitIndex int // index of highest log entry known to be committed
@@ -97,7 +99,7 @@ type Raft struct {
 
 	// signal when RPC request or response contains term T > currentTerm
 	staleSignal chan bool
-	
+
 	logger      *log.Logger
 }
 
@@ -136,6 +138,8 @@ func (rf *Raft) persist() {
 	encoder.Encode(&rf.currentTerm)
 	encoder.Encode(&rf.votedFor)
 	encoder.Encode(&rf.log)
+	encoder.Encode(&rf.lastIncludedIndex)
+	encoder.Encode(&rf.lastIncludedTerm)
 	rf.persister.SaveRaftState(writeBuffer.Bytes())
 }
 
@@ -155,6 +159,8 @@ func (rf *Raft) readPersist(data []byte) {
 	decoder.Decode(&rf.currentTerm)
 	decoder.Decode(&rf.votedFor)
 	decoder.Decode(&rf.log)
+	decoder.Decode(&rf.lastIncludedIndex)
+	decoder.Decode(&rf.lastIncludedTerm)
 }
 
 //
@@ -184,8 +190,11 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
+
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
+	// take offset into account
+	lastLogIndex += rf.lastIncludedIndex + 1
 
 	// reply false if term < currentTerm
 	if args.Term < rf.currentTerm {
@@ -273,6 +282,9 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
+	// take offset into account
+	args.PrevLogIndex -= rf.lastIncludedIndex + 1
+
 	// reply false if term < currentTerm
 	if args.Term < rf.currentTerm {
 		reply.Success = false
@@ -280,7 +292,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		reply.ConflictIndex = -1
 		return
 	}
-	
+
 	//if rf.role == LEADER && args.Term == rf.currentTerm {
 	//	rf.logger.Fatal("leader %v: receive from other leader %v in same term %v", rf.me, args.LeaderId, rf.currentTerm)
 	//}
@@ -296,14 +308,17 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		rf.persist()
 		rf.staleSignal <- true
 	}
-	
+
 	go func() {
 		rf.heartBeatCh <- HeartBeatMsg{args.Term, args.LeaderId}
 	}()
 
 	reply.Term = rf.currentTerm
 	// reply false if log doesn't contain an entry at prevLogIndex whose term matches prevLogTerm
-	if !(len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevlogTerm) {
+	if !(len(rf.log) - 1 >= args.PrevLogIndex &&
+		// support for consistency check for the first log entry following the snapshot
+		((args.PrevLogIndex == -1 && rf.lastIncludedTerm == args.PrevlogTerm) ||
+		rf.log[args.PrevLogIndex].Term == args.PrevlogTerm)) {
 		reply.Success = false
 
 		// find the first index for the term of the conflicting entry
@@ -321,6 +336,8 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		} else {
 			reply.ConflictIndex = len(rf.log)
 		}
+		// take offset into account
+		reply.ConflictIndex += rf.lastIncludedIndex + 1
 
 		rf.logger.Printf("server %v reply false, conflictIndex: %v", rf.me, reply.ConflictIndex)
 	} else {
@@ -332,19 +349,21 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 			if args.PrevLogIndex + i > len(rf.log) - 1 {
 				rf.log = append(rf.log, args.Entries[i - 1 : ]...)
 				rf.persist()
+				// take offset into account
 				rf.logger.Printf("server %v append log %v-%v in term %v from leader %v, prevLogIndex: %v",
-					rf.me, args.PrevLogIndex + i, len(rf.log) - 1, rf.currentTerm, args.LeaderId, args.PrevLogIndex)
+					rf.me, args.PrevLogIndex + i + rf.lastIncludedIndex + 1, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm, args.LeaderId, args.PrevLogIndex)
 
 				break
 			}
 			if rf.log[args.PrevLogIndex + i].Term != args.Entries[i - 1].Term {
 				// append any new entries not already in log
-
-				rf.logger.Printf("server %v delete log %v-%v", rf.me, args.PrevLogIndex + i, len(rf.log) - 1)
+				// take offset into account
+				rf.logger.Printf("server %v delete log %v-%v",
+					rf.me, args.PrevLogIndex + i + rf.lastIncludedIndex + 1, len(rf.log) + rf.lastIncludedIndex)
 				rf.log = append(rf.log[ : args.PrevLogIndex + i], args.Entries[i - 1: ]...)
 				rf.persist()
 				rf.logger.Printf("server %v append log %v-%v in term %v from leader %v, prevLogIndex: %v",
-					rf.me, args.PrevLogIndex + i, len(rf.log) - 1, rf.currentTerm, args.LeaderId, args.PrevLogIndex)
+					rf.me, args.PrevLogIndex + i + rf.lastIncludedIndex + 1, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm, args.LeaderId, args.PrevLogIndex)
 
 				break
 			}
@@ -352,22 +371,24 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 
 		// update commitIndex
 		if (args.LeaderCommit > rf.commitIndex) {
-			if len(rf.log) - 1 < args.LeaderCommit {
-				rf.commitIndex = len(rf.log) - 1
+			// take offset into account
+			if len(rf.log) + rf.lastIncludedIndex < args.LeaderCommit {
+				rf.commitIndex = len(rf.log) + rf.lastIncludedIndex
 			} else {
 				rf.commitIndex = args.LeaderCommit
 			}
 		}
 
-
+		// increment lastApplied, apply log[lastApplied] to state machine
+		for rf.lastApplied < rf.commitIndex {
+			rf.lastApplied++
+			// take offset into account
+			rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
+			rf.logger.Printf("server %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
+		}
 	}
 
-	// increment lastApplied, apply log[lastApplied] to state machine
-	for rf.lastApplied < rf.commitIndex {
-		rf.lastApplied++
-		rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied].Command, false, nil}
-		rf.logger.Printf("server %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied])
-	}
+
 
 	return
 }
@@ -420,7 +441,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 		go rf.Sync(i)
 	}
-	rf.logger.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) - 1, rf.currentTerm)
+	log.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) - 1, rf.currentTerm)
 
 	return len(rf.log) - 1, rf.currentTerm, true
 }
@@ -471,8 +492,10 @@ persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf.currentTerm = 0
 	rf.votedFor = -1
 	rf.log = make([]LogEntry, 0)
+	rf.lastIncludedIndex = -1
+	rf.lastIncludedTerm = 0
 
-	// insert a fake entry in the first log
+	// insert a fake entry in the index 0
 	rf.log = append(rf.log, LogEntry{0, nil})
 
 	rf.commitIndex = 0
