@@ -7,7 +7,7 @@ import (
 	"raft"
 	"sync"
 	"time"
-	"bytes"
+	"io/ioutil"
 )
 
 const Debug = 0
@@ -60,7 +60,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	// in the case where rpc can not reply but log is committed before network failed
 
 	kv.mu.Lock()
-	if kv.marked[args.RequestId] == true {
+	if _, ok := kv.marked[args.RequestId]; ok{
 		reply.Value = kv.data[args.Key]
 		reply.WrongLeader = false
 		reply.Err = OK
@@ -70,19 +70,24 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 	kv.mu.Unlock()
 
 	operation := Op{"Get", args.Key, "", args.RequestId}
+	finishCh := make(chan bool, 1)
+	//log.Printf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	kv.mu.Lock()
+	kv.pendingChs[args.RequestId] = finishCh
+	kv.mu.Unlock()
 	_, term, isLeader := kv.rf.Start(operation)
 
 	if !isLeader {
+		kv.mu.Lock()
+		delete(kv.pendingChs, args.RequestId)
+		kv.mu.Unlock()
 		reply.WrongLeader = true
 		return
 	} else {
 		reply.WrongLeader = false
 	}
 
-	kv.mu.Lock()
-	finishCh := make(chan bool, 1)
-	kv.pendingChs[args.RequestId] = finishCh
-	kv.mu.Unlock()
+
 
 	for {
 		select {
@@ -100,6 +105,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 			} else {
 				reply.Err = "error"
 			}
+			log.Printf("kvserver %v return request: %v", kv.me, args)
 			return
 		case <- time.After(time.Duration(time.Second)):
 			// handle the case in which a leader has called Start() for a client RPC,
@@ -109,6 +115,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
+			log.Print("loop...")
 		}
 	}
 }
@@ -119,7 +126,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// detect whether it is ever committed
 	// in the case where rpc can not reply but log is committed before network failed
 	kv.mu.Lock()
-	if kv.marked[args.RequestId] == true {
+	if _, ok :=kv.marked[args.RequestId]; ok {
 		reply.WrongLeader = false
 		reply.Err = OK
 		kv.mu.Unlock()
@@ -128,30 +135,34 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	kv.mu.Unlock()
 
 	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
+	finishCh := make(chan bool, 1)
+	//log.Printf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	kv.mu.Lock()
+	kv.pendingChs[args.RequestId] = finishCh
+	kv.mu.Unlock()
 	_, term, isLeader := kv.rf.Start(operation)
 
 	// detect whether it is leader or not
 	if !isLeader {
+		kv.mu.Lock()
+		delete(kv.pendingChs, args.RequestId)
+		kv.mu.Unlock()
 		reply.WrongLeader = true
 		return
 	} else {
 		reply.WrongLeader = false
 	}
 
-	kv.mu.Lock()
-	finishCh := make(chan bool, 1)
-	kv.pendingChs[args.RequestId] = finishCh
-	kv.mu.Unlock()
 
 	for {
 		select {
 		case msg := <-finishCh:
-			//log.Print("finish ", args, kv.me)
 			if msg {
 				reply.Err = OK
 			} else {
 				reply.Err = "error"
 			}
+			log.Printf("kvserver %v return request: %v", kv.me, args)
 			return
 		case <-time.After(time.Duration(time.Second)):
 			// handle the case in which a leader has called Start() for a client RPC,
@@ -161,6 +172,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
+			log.Print("loop...")
 		}
 	}
 }
@@ -194,6 +206,8 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	// Go's RPC library to marshall/unmarshall.
 	gob.Register(Op{})
 
+	log.SetOutput(ioutil.Discard)
+
 	kv := new(RaftKV)
 	kv.me = me
 	kv.maxraftstate = maxraftstate
@@ -201,13 +215,13 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// Your initialization code here.
 	log.Print("init ------------------", kv.me)
-	kv.applyCh = make(chan raft.ApplyMsg)
+	kv.applyCh = make(chan raft.ApplyMsg, 1)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.data = make(map[string]string)
 	kv.pendingChs = make(map[int64]chan bool)
 	kv.marked = make(map[int64]bool)
 
-	kv.readPersist(kv.persister.ReadSnapshot())
+	//kv.readPersist(kv.persister.ReadSnapshot())
 
 	go kv.ReceiveApply()
 
@@ -222,7 +236,7 @@ func (kv *RaftKV) ReceiveApply() {
 		_, command := msg.Index, msg.Command.(Op)
 
 		kv.mu.Lock()
-		if kv.marked[command.RequestId] == true {
+		if _, ok := kv.marked[command.RequestId]; ok {
 			//log.Print(kv.me, ": already finish operation", command)
 		} else {
 			if command.Type == "Put" {
@@ -233,11 +247,16 @@ func (kv *RaftKV) ReceiveApply() {
 			log.Printf("kvserver %v finish: %v", kv.me, command)
 
 			kv.marked[command.RequestId] = true
+
 			if ch, ok := kv.pendingChs[command.RequestId]; ok {
+				//log.Printf("kvserver leader %v get to the channel: %v", kv.me, command)
 				ch <- true
+				//log.Print("over!!!")
+			} else {
+				//log.Printf("kvserver %v: pendingChs[%v] not exist", kv.me, command.RequestId)
 			}
-			delete(kv.pendingChs, command.RequestId)
-			kv.persist()
+			//delete(kv.pendingChs, command.RequestId)
+			//kv.persist()
 		}
 		kv.mu.Unlock()
 
@@ -252,21 +271,21 @@ func (kv *RaftKV) ReceiveApply() {
 //
 // save previously persisted state
 //
-func (kv *RaftKV) persist() {
-	writeBuffer := new(bytes.Buffer)
-	encoder := gob.NewEncoder(writeBuffer)
-	encoder.Encode(&kv.data)
-	encoder.Encode(&kv.marked)
-	kv.persister.SaveSnapshot(writeBuffer.Bytes())
-}
+//func (kv *RaftKV) persist() {
+//	writeBuffer := new(bytes.Buffer)
+//	encoder := gob.NewEncoder(writeBuffer)
+//	encoder.Encode(&kv.data)
+//	encoder.Encode(&kv.marked)
+//	kv.persister.SaveSnapshot(writeBuffer.Bytes())
+//}
 
 //
 // restore previously persisted state.
 //
-func (kv *RaftKV) readPersist(data []byte) {
-	readBuffer := bytes.NewBuffer(data)
-	decoder := gob.NewDecoder(readBuffer)
-	decoder.Decode(&kv.data)
-	decoder.Decode(&kv.marked)
-}
+//func (kv *RaftKV) readPersist(data []byte) {
+//	readBuffer := bytes.NewBuffer(data)
+//	decoder := gob.NewDecoder(readBuffer)
+//	decoder.Decode(&kv.data)
+//	decoder.Decode(&kv.marked)
+//}
 

@@ -7,7 +7,10 @@ import "fmt"
 import "math/rand"
 import "log"
 import "strings"
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+)
 
 // The tester generously allows solutions to complete elections in one second
 // (much more than the paper's range of timeouts).
@@ -37,10 +40,10 @@ func spawn_clients_and_wait(t *testing.T, cfg *config, ncli int, fn func(me int,
 		ca[cli] = make(chan bool)
 		go run_client(t, cfg, cli, ca[cli], fn)
 	}
-	// log.Printf("spawn_clients_and_wait: waiting for clients")
+	log.Printf("-------spawn_clients_and_wait: waiting for clients--------")
 	for cli := 0; cli < ncli; cli++ {
 		ok := <-ca[cli]
-		// log.Printf("spawn_clients_and_wait: client %d is done\n", cli)
+		log.Printf("--------spawn_clients_and_wait: client %d is done\n-------", cli)
 		if ok == false {
 			t.Fatalf("failure")
 		}
@@ -132,7 +135,6 @@ func GenericTest(t *testing.T, tag string, nclients int, unreliable bool, crash 
 	const nservers = 5
 	cfg := make_config(t, tag, nservers, unreliable, maxraftstate)
 	defer cfg.cleanup()
-
 	ck := cfg.makeClient(cfg.All())
 
 	done_partitioner := int32(0)
@@ -157,13 +159,15 @@ func GenericTest(t *testing.T, tag string, nclients int, unreliable bool, crash 
 			for atomic.LoadInt32(&done_clients) == 0 {
 				if (rand.Int() % 1000) < 500 {
 					nv := "x " + strconv.Itoa(cli) + " " + strconv.Itoa(j) + " y"
-					 log.Printf("---------%d: client new append %v----------", cli, nv)
+					 log.Printf("---------%d: client new append %v %v----------", cli, key, nv)
 					myck.Append(key, nv)
+					log.Printf("---------%d: client append %v %v finish----------", cli, key, nv)
 					last = NextValue(last, nv)
 					j++
 				} else {
 					 log.Printf("--------%d: client new get %v----------", cli, key)
 					v := myck.Get(key)
+					log.Printf("--------%d: client get %v finish----------", cli, key)
 					if v != last {
 						log.Fatalf("get wrong value, key %v, wanted:\n%v\n, got\n%v\n", key, last, v)
 					}
@@ -209,15 +213,16 @@ func GenericTest(t *testing.T, tag string, nclients int, unreliable bool, crash 
 			cfg.ConnectAll()
 		}
 
-		// log.Printf("wait for clients\n")
+		//log.SetOutput(os.Stdout)
+		log.Printf("----------wait for clients------------")
 		for i := 0; i < nclients; i++ {
-			// log.Printf("read from clients %d\n", i)
+			log.Printf("---------read from clients %d----------", i)
 			j := <-clnts[i]
 			if j < 10 {
 				log.Printf("Warning: client %d managed to perform only %d put operations in 1 sec?\n", i, j)
 			}
 			key := strconv.Itoa(i)
-			// log.Printf("Check %v for client %d\n", j, i)
+			log.Printf("----------Check %v for client %d------------", j, i)
 			v := ck.Get(key)
 			checkClntAppends(t, i, v, j)
 		}
