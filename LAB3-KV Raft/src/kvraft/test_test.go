@@ -438,6 +438,7 @@ func TestSnapshotRPC(t *testing.T) {
 
 	// now make group that requires participation of
 	// lagging server, so that it has to catch up.
+	log.Print("------------make group that requires participation of lagging server-------")
 	cfg.partition([]int{0, 2}, []int{1})
 	{
 		ck1 := cfg.makeClient([]int{0, 2})

@@ -36,7 +36,7 @@ func (rf *Raft) Election() {
 				reply := new(RequestVoteReply)
 				term := rf.currentTerm
 				if rf.sendRequestVote(index, args, reply) == false {
-					//rf.logger.Printf("candidate %v request vote rpc call to server %v failed in term %v", rf.me, index, term)
+					rf.logger.Printf("candidate %v request vote rpc call to server %v failed in term %v", rf.me, index, term)
 				} else if rf.currentTerm == term {
 					if reply.VoteGranted == true {
 						rf.logger.Printf("candidate %v get server %v's vote", rf.me, index)
@@ -69,7 +69,7 @@ func (rf *Raft) Election() {
 	case msg := <- rf.heartBeatCh:
 		if msg.Term < rf.currentTerm {
 			// the heartbeat msg is stale
-			// rf.logger.Print("AppendEntries Handler fail to ingore stale heartbeat")
+			rf.logger.Print("AppendEntries Handler fail to ingore stale heartbeat")
 			go rf.Election()
 			return
 		} else {

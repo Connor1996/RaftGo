@@ -190,6 +190,7 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
+	rf.logger.Printf("server %v receive request vote from candidate %v", rf.me, args.CandidateId)
 
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
@@ -327,7 +328,7 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 			for rf.log[index].Term == rf.log[args.PrevLogIndex].Term {
 				if index == 0 {
 					index = -1
-					rf.logger.Fatal("it is impossible to be here")
+					//rf.logger.Fatal("it is impossible to be here")
 					break
 				}
 				index--
@@ -403,7 +404,7 @@ type InstallSnapshotArgs struct {
 	LeaderId            int // so follower can redirect client
 	LastIncludedIndex   int
 	LastIncludedTerm    int
-	data                []byte // little change from paper, not split into chunck
+	Data                []byte // little change from paper, not split into chunck
 }
 
 type InstallSnapshotReply struct {
@@ -413,7 +414,50 @@ type InstallSnapshotReply struct {
 //
 // InstallSnapshot RPC handler
 //
-func (rf *Raft) InstallSnapshot(args AppendEntriesArgs, reply *AppendEntriesReply) {
+func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshotReply) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	rf.logger.Printf("server %v receive InstallSnapshot RPC", rf.me)
+
+	// reply false if term < currentTerm
+	if args.Term < rf.currentTerm {
+		reply.Term = rf.currentTerm
+		return
+	}
+
+	// request contains term T > currentTerm
+	// set currentTerm = T, convert to follower
+	if (args.Term > rf.currentTerm) {
+		rf.logger.Printf("server %v in term %v receive AppendEntries RPC from server %v with higher term %v",
+			rf.me, rf.currentTerm, args.LeaderId, args.Term)
+		rf.currentTerm = args.Term
+		rf.votedFor = args.LeaderId
+		rf.role = FOLLOWER
+		rf.persist()
+		rf.staleSignal <- true
+	}
+
+	reply.Term = rf.currentTerm
+	if rf.lastIncludedIndex > args.LastIncludedIndex {
+		// stale snapshot
+		return
+	}
+
+	rf.persister.SaveSnapshot(args.Data)
+	rf.applyCh <- ApplyMsg{0, nil, true, args.Data}
+	// if existing log entry has same index and term as snapshot's last included index
+	// retain log entries following it and reply
+	if args.LastIncludedIndex - rf.lastIncludedIndex - 1 >= 0 &&
+	rf.log[args.LastIncludedIndex - rf.lastIncludedIndex - 1].Term == args.LastIncludedTerm {
+		rf.log = rf.log[args.LastIncludedIndex - rf.lastIncludedIndex : ]
+	} else {
+		// discard the entrie log
+		rf.log = make([]LogEntry, 0)
+	}
+
+	rf.lastIncludedIndex = args.LastIncludedIndex
+	rf.lastIncludedTerm = args.LastIncludedTerm
 
 	return
 }
@@ -444,17 +488,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	if rf.role != LEADER {
 		return -1, -1, false
 	}
-
-	//for i, entry := range rf.log {
-	//	if i > rf.commitIndex {
-	//		break
-	//	}
-	//
-	//	// the command is ever committed
-	//	if entry.Command == command {
-	//		return -1, rf.currentTerm, true
-	//	}
-	//}
 
 	rf.log = append(rf.log, LogEntry{rf.currentTerm, command})
 	rf.persist()
@@ -503,7 +536,7 @@ persister *Persister, applyCh chan ApplyMsg) *Raft {
 
 	// init logger
 	rf.logger = log.New(os.Stdout, "", log.LstdFlags)
-	discard := true
+	discard := false
 	if (discard) {
 		rf.logger.SetOutput(ioutil.Discard)
 	}

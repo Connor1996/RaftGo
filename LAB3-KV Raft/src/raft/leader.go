@@ -2,7 +2,7 @@ package raft
 
 import (
 	"time"
-	"log"
+//	"log"
 )
 
 func (rf *Raft) Commit() {
@@ -93,9 +93,39 @@ func (rf *Raft) Sync(server int) {
 
 	// if last log index >= nextIndex
 	// send AppendEntries RPC with log entries starting at nextIndex
-	log.Printf("leader %v: nextIndex[%v]:%v, lastIncludedIndex:%v", rf.me, server, rf.nextIndex[server], rf.lastIncludedIndex)
+	// log.Printf("leader %v: nextIndex[%v]:%v, lastIncludedIndex:%v", rf.me, server, rf.nextIndex[server], rf.lastIncludedIndex)
 	if lastLogIndex >= rf.nextIndex[server]  {
-		entries = rf.log[rf.nextIndex[server] - rf.lastIncludedIndex - 1: ]
+		// send snapshot to slow follower
+		if rf.lastIncludedIndex >= rf.nextIndex[server] {
+			rf.logger.Printf("leader %v find server %v slow, send snapshot", rf.me, server)
+
+			args := InstallSnapshotArgs{
+				Term: rf.currentTerm,
+				LeaderId: rf.me,
+				LastIncludedIndex: rf.lastIncludedIndex,
+				LastIncludedTerm: rf.lastIncludedTerm,
+				Data: rf.persister.ReadSnapshot(),
+			}
+			reply := new(InstallSnapshotReply)
+			if rf.sendInstallSnapshot(server, args, reply) {
+				if reply.Term > rf.currentTerm {
+					// response contains term T > currentTerm
+					// set currentTerm = T, convert to follower
+					rf.logger.Printf("leader %v in term %v receive InstallSnapshot response from server %v with higher term %v",
+						rf.me, rf.currentTerm, server, reply.Term)
+					rf.currentTerm = reply.Term
+					rf.votedFor = server
+					rf.role = FOLLOWER
+					rf.persist()
+					rf.staleSignal <- true
+
+				}
+			}
+			rf.mu.Unlock()
+			return
+		} else {
+			entries = rf.log[rf.nextIndex[server] - rf.lastIncludedIndex - 1: ]
+		}
 	} else {
 		// nothing to send, namely sending heartbeat
 		//rf.logger.Printf("leader %v send heartbeat to server %v", rf.me, server)
@@ -192,7 +222,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 			go rf.HeartBeatTimer()
 			return
 		case <-time.After(interval):
-		//rf.logger.Print("fuck")
+			rf.logger.Printf("leader %v heartbeat broadcast", rf.me)
 		}
 
 		//if rf.role != LEADER {
@@ -204,7 +234,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 
 func (rf *Raft) DeleteOldEntries(lastIndex int) {
 	rf.mu.Lock()
-	defer rf.mu.Lock()
+	defer rf.mu.Unlock()
 
 	if lastIndex < rf.lastIncludedIndex {
 		rf.logger.Printf("server %v already snapshot", rf.me)
@@ -219,7 +249,6 @@ func (rf *Raft) DeleteOldEntries(lastIndex int) {
 	rf.logger.Printf("server %v update lastIncludedIndex to %v", rf.me, lastIndex)
 	rf.lastIncludedIndex = lastIndex
 
-
 	rf.persist()
-
+	return
 }

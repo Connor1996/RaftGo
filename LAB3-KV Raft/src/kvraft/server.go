@@ -136,10 +136,10 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 
 	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
 	finishCh := make(chan bool, 1)
-	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
 	kv.mu.Lock()
 	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
+	DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
 	_, term, isLeader := kv.rf.Start(operation)
 
 	// detect whether it is leader or not
@@ -218,7 +218,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.pendingChs = make(map[int64]chan bool)
 	kv.marked = make(map[int64]bool)
 
-	//kv.readPersist(kv.persister.ReadSnapshot())
+	kv.readPersist(kv.persister.ReadSnapshot())
 
 	go kv.ReceiveApply()
 
@@ -230,6 +230,11 @@ func (kv *RaftKV) ReceiveApply() {
 
 	for {
 		msg = <-kv.applyCh
+		if msg.UseSnapshot {
+			kv.readPersist(msg.Snapshot)
+			continue
+		}
+
 		index, command := msg.Index, msg.Command.(Op)
 
 		kv.mu.Lock()
@@ -258,6 +263,7 @@ func (kv *RaftKV) ReceiveApply() {
 			kv.persist()
 			go kv.rf.DeleteOldEntries(index)
 		}
+		DPrintf("recevie loop...")
 	}
 }
 
@@ -281,4 +287,3 @@ func (kv *RaftKV) readPersist(data []byte) {
 	decoder.Decode(&kv.data)
 	decoder.Decode(&kv.marked)
 }
-

@@ -15,6 +15,7 @@ func (rf *Raft) HeartBeatTimer() {
 		case <- rf.staleSignal:
 			continue
 		case msg := <- rf.heartBeatCh:
+			//rf.logger.Printf("server %v receive heartbeat from leader %v")
 			rf.mu.Lock()
 			rf.currentTerm = msg.Term
 			rf.votedFor = msg.ServerId
