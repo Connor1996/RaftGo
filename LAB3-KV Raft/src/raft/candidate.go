@@ -16,8 +16,15 @@ func (rf *Raft) Election() {
 	rf.mu.Unlock()
 
 	rf.logger.Printf("server %v issue a new election in term %v\n", rf.me, rf.currentTerm)
+	// take offset into account
 	lastLogIndex := len(rf.log) - 1
-	lastLogTerm := rf.log[lastLogIndex].Term
+	var lastLogTerm int
+	if lastLogIndex == -1 {
+		lastLogTerm = rf.lastIncludedTerm
+	} else {
+		lastLogTerm = rf.log[lastLogIndex].Term
+	}
+	lastLogIndex += rf.lastIncludedIndex + 1
 	args := RequestVoteArgs{rf.currentTerm, rf.me, lastLogIndex, lastLogTerm}
 
 	// signal when winning election
@@ -36,7 +43,7 @@ func (rf *Raft) Election() {
 				reply := new(RequestVoteReply)
 				term := rf.currentTerm
 				if rf.sendRequestVote(index, args, reply) == false {
-					rf.logger.Printf("candidate %v request vote rpc call to server %v failed in term %v", rf.me, index, term)
+					//rf.logger.Printf("candidate %v request vote rpc call to server %v failed in term %v", rf.me, index, term)
 				} else if rf.currentTerm == term {
 					if reply.VoteGranted == true {
 						rf.logger.Printf("candidate %v get server %v's vote", rf.me, index)

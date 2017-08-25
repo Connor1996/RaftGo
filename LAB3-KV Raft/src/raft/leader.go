@@ -2,7 +2,6 @@ package raft
 
 import (
 	"time"
-//	"log"
 )
 
 func (rf *Raft) Commit() {
@@ -15,7 +14,7 @@ func (rf *Raft) Commit() {
 
 	index := -1
 	// find the first entry that append in current term
-	for i := len(rf.log) - 1; i > 0; i-- {
+	for i := len(rf.log) - 1; i >= 0; i-- {
 		if rf.log[i].Term == rf.currentTerm {
 			index = i
 		} else if rf.log[i].Term < rf.currentTerm {
@@ -66,11 +65,12 @@ func (rf *Raft) Commit() {
 	}
 
 	// update commmit index to upperbound
-	for rf.commitIndex < upperBound {
-		rf.commitIndex++
+	rf.commitIndex = upperBound
+	for rf.lastApplied < rf.commitIndex {
+		rf.lastApplied++
 		// take offset into account
-		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.commitIndex, rf.log[rf.commitIndex - rf.lastIncludedIndex - 1])
-		rf.applyCh <- ApplyMsg{rf.commitIndex, rf.log[rf.commitIndex - rf.lastIncludedIndex - 1].Command, false, nil}
+		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
+		rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
 	}
 
 }
@@ -80,23 +80,24 @@ func (rf *Raft) Commit() {
 func (rf *Raft) Sync(server int) {
 	rf.locker[server].Lock()
 
+	rf.mu.Lock()
 	if rf.role != LEADER {
 		rf.logger.Printf("server %v is not leader any more ", rf.me)
 		rf.locker[server].Unlock()
+		rf.mu.Unlock()
 		return
 	}
 
-	rf.mu.Lock()
 	// take offset into account
 	lastLogIndex := len(rf.log) + rf.lastIncludedIndex
 	var entries []LogEntry
 
 	// if last log index >= nextIndex
 	// send AppendEntries RPC with log entries starting at nextIndex
-	// log.Printf("leader %v: nextIndex[%v]:%v, lastIncludedIndex:%v", rf.me, server, rf.nextIndex[server], rf.lastIncludedIndex)
 	if lastLogIndex >= rf.nextIndex[server]  {
 		// send snapshot to slow follower
 		if rf.lastIncludedIndex >= rf.nextIndex[server] {
+			//rf.logger.Printf("leader %v: nextIndex[%v]:%v, lastIncludedIndex:%v", rf.me, server, rf.nextIndex[server], rf.lastIncludedIndex)
 			rf.logger.Printf("leader %v find server %v slow, send snapshot", rf.me, server)
 
 			args := InstallSnapshotArgs{
@@ -118,9 +119,13 @@ func (rf *Raft) Sync(server int) {
 					rf.role = FOLLOWER
 					rf.persist()
 					rf.staleSignal <- true
-
+				} else if reply.Success {
+					// update nextIndex and matchIndex for follower
+					rf.matchIndex[server] = args.LastIncludedIndex
+					rf.nextIndex[server] = rf.matchIndex[server] + 1
 				}
 			}
+			rf.locker[server].Unlock()
 			rf.mu.Unlock()
 			return
 		} else {
@@ -143,15 +148,21 @@ func (rf *Raft) Sync(server int) {
 	// to support the AppendEntries consistency check for the first log entry following the snapshot
 	if args.PrevLogIndex == rf.lastIncludedIndex  {
 		args.PrevlogTerm = rf.lastIncludedTerm
+	} else {
+		//rf.logger.Printf("~~~~~~~~~%v %v len:%v", args.PrevLogIndex, rf.lastIncludedIndex, len(rf.log))
+		args.PrevlogTerm = rf.log[args.PrevLogIndex - rf.lastIncludedIndex - 1].Term
 	}
 	rf.locker[server].Unlock()
 	rf.mu.Unlock()
 
 	reply := new(AppendEntriesReply)
 	//term := rf.currentTerm
+	//if len(args.Entries) != 0 {
+	//	rf.logger.Printf("leader %v append log to server %v in term %v", rf.me, server, rf.currentTerm)
+	//}
 	if rf.sendAppendEntries(server, args, reply) == false {
 		if (len(args.Entries) != 0) {
-			//rf.logger.Printf("leader %v append log to server %v failed in term %v", rf.me, server, term)
+		//	rf.logger.Printf("leader %v append log to server %v failed in term %v", rf.me, server, term)
 		}
 		return
 	} else if reply.Term < rf.currentTerm {
@@ -162,7 +173,6 @@ func (rf *Raft) Sync(server int) {
 		if reply.Term > rf.currentTerm {
 			// response contains term T > currentTerm
 			// set currentTerm = T, convert to follower
-
 			rf.logger.Printf("leader %v in term %v receive AppendEntries response from server %v with higher term %v",
 				rf.me, rf.currentTerm, server, reply.Term)
 			rf.currentTerm = reply.Term
@@ -180,19 +190,22 @@ func (rf *Raft) Sync(server int) {
 	defer rf.locker[server].Unlock()
 
 	if reply.Success {
-		// update nextIndex and matchIndex for follower
-		rf.matchIndex[server] = args.PrevLogIndex + len(args.Entries)
-		rf.nextIndex[server] = rf.matchIndex[server] + 1
-
+		// no need to update
+		if len(args.Entries) != 0 {
+			// update nextIndex and matchIndex for follower
+			rf.matchIndex[server] = args.PrevLogIndex + len(args.Entries)
+			rf.nextIndex[server] = rf.matchIndex[server] + 1
+			rf.logger.Printf("update nextIndex to %v, matchIndex to %v for server %v",
+				rf.nextIndex[server], rf.matchIndex[server], server)
+		}
 	} else {
 		// fail because of log inconsistency, then decrement nextIndex and retry
 		if (reply.ConflictIndex > 0) {
 			rf.nextIndex[server] = reply.ConflictIndex
-			rf.logger.Printf("update nextIndex to %v for server %v", rf.nextIndex[server], server)
+			//rf.logger.Printf("update nextIndex to %v for server %v", rf.nextIndex[server], server)
 		} else {
 			// fail because of stale
 		}
-
 	}
 
 	rf.Commit()
@@ -222,7 +235,7 @@ func (rf *Raft) BroadCastHeartBeat() {
 			go rf.HeartBeatTimer()
 			return
 		case <-time.After(interval):
-			rf.logger.Printf("leader %v heartbeat broadcast", rf.me)
+			//rf.logger.Printf("leader %v heartbeat broadcast", rf.me)
 		}
 
 		//if rf.role != LEADER {
@@ -246,7 +259,7 @@ func (rf *Raft) DeleteOldEntries(lastIndex int) {
 	// update info
 	rf.lastIncludedTerm = rf.log[lastIndex - rf.lastIncludedIndex - 1].Term
 	rf.log = rf.log[lastIndex - rf.lastIncludedIndex : ]
-	rf.logger.Printf("server %v update lastIncludedIndex to %v", rf.me, lastIndex)
+	rf.logger.Printf("server %v update lastIncludedIndex to %v, lastIncludedTerm to %v", rf.me, lastIndex, rf.lastIncludedTerm)
 	rf.lastIncludedIndex = lastIndex
 
 	rf.persist()

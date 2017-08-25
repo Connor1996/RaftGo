@@ -190,7 +190,7 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
-	rf.logger.Printf("server %v receive request vote from candidate %v", rf.me, args.CandidateId)
+	//rf.logger.Printf("server %v receive request vote from candidate %v", rf.me, args.CandidateId)
 
 	lastLogIndex := len(rf.log) - 1
 	lastLogTerm := rf.log[lastLogIndex].Term
@@ -230,6 +230,7 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 			rf.logger.Printf("server %v vote for candidate %v in term %v", rf.me, args.CandidateId, rf.currentTerm)
 		} else {
 			rf.logger.Printf("server %v deny for candidate %v for log's out of date", rf.me, args.CandidateId)
+			rf.logger.Printf("args.LastLogIndex: %v, lastLogIndex: %v", args.LastLogIndex, lastLogIndex)
 		}
 	} else {
 		rf.logger.Printf("server %v deny for candidate %v cause already voting", rf.me, args.CandidateId)
@@ -316,19 +317,34 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 
 	reply.Term = rf.currentTerm
 	// reply false if log doesn't contain an entry at prevLogIndex whose term matches prevLogTerm
-	if !(len(rf.log) - 1 >= args.PrevLogIndex &&
-		// support for consistency check for the first log entry following the snapshot
-		((args.PrevLogIndex == -1 && rf.lastIncludedTerm == args.PrevlogTerm) ||
-		rf.log[args.PrevLogIndex].Term == args.PrevlogTerm)) {
-		reply.Success = false
 
+	// support for consistency check for the first log entry following the snapshot
+	if args.PrevLogIndex == -1 {
+		if rf.lastIncludedTerm == args.PrevlogTerm {
+			// follower contained entry matching prevLogIndex and prevLogTerm
+			reply.Success = true
+		} else {
+			rf.logger.Fatal("inconsistent between snapsnot")
+		}
+	}else if args.PrevLogIndex < -1 {
+		rf.logger.Printf("server %v in term %v: %v...%v....%v...%v... %v",
+			rf.me, rf.currentTerm, len(rf.log), args.PrevLogIndex, args.PrevlogTerm, rf.lastIncludedTerm, rf.lastIncludedIndex)
+
+	} else if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevlogTerm {
+		// follower contained entry matching prevLogIndex and prevLogTerm
+		reply.Success = true
+	} else {
+		reply.Success = false
+	}
+
+
+	if !reply.Success {
 		// find the first index for the term of the conflicting entry
 		if len(rf.log) - 1 >= args.PrevLogIndex {
 			index := args.PrevLogIndex
 			for rf.log[index].Term == rf.log[args.PrevLogIndex].Term {
 				if index == 0 {
 					index = -1
-					//rf.logger.Fatal("it is impossible to be here")
 					break
 				}
 				index--
@@ -339,11 +355,9 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		}
 		// take offset into account
 		reply.ConflictIndex += rf.lastIncludedIndex + 1
-
+		rf.logger.Printf("PrevLogIndex:%v, PrevLogTerm:%v, lastIncludedTerm:%v", args.PrevLogIndex, args.PrevlogTerm, rf.lastIncludedTerm)
 		rf.logger.Printf("server %v reply false, conflictIndex: %v", rf.me, reply.ConflictIndex)
 	} else {
-		// follower contained entry matching prevLogIndex and prevLogTerm
-		reply.Success = true
 		// delete the existing entry conflicting with a new one and all that follow it
 		for i := 1; i <= len(args.Entries); i++ {
 			// append any new entries not already in log
@@ -352,7 +366,8 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 				rf.persist()
 				// take offset into account
 				rf.logger.Printf("server %v append log %v-%v in term %v from leader %v, prevLogIndex: %v",
-					rf.me, args.PrevLogIndex + i + rf.lastIncludedIndex + 1, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm, args.LeaderId, args.PrevLogIndex)
+					rf.me, args.PrevLogIndex + i + rf.lastIncludedIndex + 1, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm,
+					args.LeaderId, args.PrevLogIndex + rf.lastIncludedIndex + 1)
 
 				break
 			}
@@ -389,8 +404,6 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		}
 	}
 
-
-
 	return
 }
 
@@ -409,6 +422,7 @@ type InstallSnapshotArgs struct {
 
 type InstallSnapshotReply struct {
 	Term        int
+	Success     bool
 }
 
 //
@@ -418,18 +432,21 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
-	rf.logger.Printf("server %v receive InstallSnapshot RPC", rf.me)
 
 	// reply false if term < currentTerm
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
+		reply.Success = false
 		return
 	}
+
+
+	rf.logger.Printf("server %v receive InstallSnapshot RPC", rf.me)
 
 	// request contains term T > currentTerm
 	// set currentTerm = T, convert to follower
 	if (args.Term > rf.currentTerm) {
-		rf.logger.Printf("server %v in term %v receive AppendEntries RPC from server %v with higher term %v",
+		rf.logger.Printf("server %v in term %v receive InstallSnapshot RPC from server %v with higher term %v",
 			rf.me, rf.currentTerm, args.LeaderId, args.Term)
 		rf.currentTerm = args.Term
 		rf.votedFor = args.LeaderId
@@ -438,18 +455,26 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 		rf.staleSignal <- true
 	}
 
+
 	reply.Term = rf.currentTerm
 	if rf.lastIncludedIndex > args.LastIncludedIndex {
 		// stale snapshot
+		reply.Success = false
 		return
 	}
+
+	go func() {
+		rf.heartBeatCh <- HeartBeatMsg{args.Term, args.LeaderId}
+	}()
 
 	rf.persister.SaveSnapshot(args.Data)
 	rf.applyCh <- ApplyMsg{0, nil, true, args.Data}
 	// if existing log entry has same index and term as snapshot's last included index
 	// retain log entries following it and reply
-	if args.LastIncludedIndex - rf.lastIncludedIndex - 1 >= 0 &&
-	rf.log[args.LastIncludedIndex - rf.lastIncludedIndex - 1].Term == args.LastIncludedTerm {
+	//rf.logger.Printf("...%v....%v", args.LastIncludedIndex, rf.lastIncludedIndex)
+	if args.LastIncludedIndex - rf.lastIncludedIndex - 1 < len(rf.log)  &&
+		args.LastIncludedIndex - rf.lastIncludedIndex - 1 >= 0 &&
+		rf.log[args.LastIncludedIndex - rf.lastIncludedIndex - 1].Term == args.LastIncludedTerm {
 		rf.log = rf.log[args.LastIncludedIndex - rf.lastIncludedIndex : ]
 	} else {
 		// discard the entrie log
@@ -458,7 +483,10 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 
 	rf.lastIncludedIndex = args.LastIncludedIndex
 	rf.lastIncludedTerm = args.LastIncludedTerm
+	rf.lastApplied = args.LastIncludedIndex
+	rf.commitIndex = args.LastIncludedIndex
 
+	reply.Success = true
 	return
 }
 
@@ -489,6 +517,18 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		return -1, -1, false
 	}
 
+	// for the situation where lose leadership before commit the log
+	// when client re-send the request to the server that append the old log of the request
+	// we shouldn't simply the append new log cause old log will be commit and apply as well (namely, apply one request twice)
+	// for the purpose of avoiding Figure 8, we also can not commit the old log when no new log append in current term
+	// so we update the term of the old log, then it will be committed
+	for index := rf.commitIndex + 1; index < len(rf.log); index++ {
+		if rf.log[index].Command == command {
+			rf.log[index].Term = rf.currentTerm
+			return index, rf.currentTerm, true
+		}
+	}
+
 	rf.log = append(rf.log, LogEntry{rf.currentTerm, command})
 	rf.persist()
 
@@ -499,7 +539,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 		go rf.Sync(i)
 	}
-	log.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) - 1, rf.currentTerm)
+	// take offset into account
+	log.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm)
 
 	return len(rf.log) - 1, rf.currentTerm, true
 }

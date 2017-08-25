@@ -67,15 +67,16 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 		kv.mu.Unlock()
 		return
 	}
+
+	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	finishCh := make(chan bool, 1)
+	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
 	operation := Op{"Get", args.Key, "", args.RequestId}
-	finishCh := make(chan bool, 1)
-	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
-	kv.mu.Lock()
-	kv.pendingChs[args.RequestId] = finishCh
-	kv.mu.Unlock()
 	_, term, isLeader := kv.rf.Start(operation)
+
+
 
 	if !isLeader {
 		kv.mu.Lock()
@@ -132,14 +133,13 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		kv.mu.Unlock()
 		return
 	}
+
+	//DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
+	finishCh := make(chan bool, 1)
+	kv.pendingChs[args.RequestId] = finishCh
 	kv.mu.Unlock()
 
 	operation := Op{args.Op, args.Key, args.Value, args.RequestId}
-	finishCh := make(chan bool, 1)
-	kv.mu.Lock()
-	kv.pendingChs[args.RequestId] = finishCh
-	kv.mu.Unlock()
-	DPrintf("kvserver %v: add pendingChs[%v]", kv.me, args.RequestId)
 	_, term, isLeader := kv.rf.Start(operation)
 
 	// detect whether it is leader or not
@@ -261,9 +261,9 @@ func (kv *RaftKV) ReceiveApply() {
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
 			DPrintf("server %v making snapshot", kv.me)
 			kv.persist()
-			go kv.rf.DeleteOldEntries(index)
+			kv.rf.DeleteOldEntries(index)
 		}
-		DPrintf("recevie loop...")
+		//DPrintf("recevie loop...")
 	}
 }
 

@@ -57,6 +57,7 @@ func (ck *Clerk) Get(key string) string {
 	for {
 		var reply GetReply
 		// You will have to modify this function.
+		DPrintf(": get %v rpc to server %v", args, leaderIdx)
 		if ck.servers[leaderIdx].Call("RaftKV.Get", &args, &reply) == false {
 			// retry
 			//DPrint("get rpc false")
@@ -102,8 +103,9 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	for {
 		var reply PutAppendReply
 		// You will have to modify this function.
+		DPrintf(": put append %v rpc to server %v", args, leaderIdx)
 		if ck.servers[leaderIdx].Call("RaftKV.PutAppend", &args, &reply) == false {
-			DPrintf(": put append %v rpc to server %v false", args, leaderIdx)
+
 		} else if reply.WrongLeader == false {
 			ck.recentLeader = leaderIdx
 			if reply.Err == OK {
