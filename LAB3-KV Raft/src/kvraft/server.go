@@ -116,7 +116,7 @@ func (kv *RaftKV) Get(args *GetArgs, reply *GetReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
-			DPrintf("loop...")
+			DPrintf("loop...%v", args)
 		}
 	}
 }
@@ -172,7 +172,7 @@ func (kv *RaftKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 				reply.Err = ErrLoseLeader
 				return
 			}
-			DPrintf("loop...")
+			DPrintf("loop... %v", args)
 		}
 	}
 }
@@ -235,6 +235,10 @@ func (kv *RaftKV) ReceiveApply() {
 			continue
 		}
 
+		// ignore the first fake log
+		if msg.Command == nil {
+			continue;
+		}
 		index, command := msg.Index, msg.Command.(Op)
 
 		kv.mu.Lock()
@@ -246,11 +250,11 @@ func (kv *RaftKV) ReceiveApply() {
 			} else if command.Type == "Append" {
 				kv.data[command.Key] += command.Value
 			}
-			DPrintf("kvserver %v finish: %v", kv.me, command)
 
 			kv.marked[command.RequestId] = true
-
+			kv.persist()
 			if ch, ok := kv.pendingChs[command.RequestId]; ok {
+				DPrintf("kvserver %v finish: %v", kv.me, command)
 				ch <- true
 				delete(kv.pendingChs, command.RequestId)
 			}
@@ -260,10 +264,10 @@ func (kv *RaftKV) ReceiveApply() {
 		// check state size to make snapshot
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
 			DPrintf("server %v making snapshot", kv.me)
-			kv.persist()
+
 			kv.rf.DeleteOldEntries(index)
 		}
-		//DPrintf("recevie loop...")
+		DPrintf("server %v recevie loop...", kv.me)
 	}
 }
 

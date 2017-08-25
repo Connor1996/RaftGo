@@ -192,8 +192,13 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 
 	//rf.logger.Printf("server %v receive request vote from candidate %v", rf.me, args.CandidateId)
 
+	var lastLogTerm int
 	lastLogIndex := len(rf.log) - 1
-	lastLogTerm := rf.log[lastLogIndex].Term
+	if lastLogIndex == -1 {
+		lastLogTerm = rf.lastIncludedTerm
+	} else {
+		lastLogTerm = rf.log[lastLogIndex].Term
+	}
 	// take offset into account
 	lastLogIndex += rf.lastIncludedIndex + 1
 
@@ -327,9 +332,13 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 			rf.logger.Fatal("inconsistent between snapsnot")
 		}
 	}else if args.PrevLogIndex < -1 {
+		// stale rpc, the log is deleted
 		rf.logger.Printf("server %v in term %v: %v...%v....%v...%v... %v",
 			rf.me, rf.currentTerm, len(rf.log), args.PrevLogIndex, args.PrevlogTerm, rf.lastIncludedTerm, rf.lastIncludedIndex)
-
+		reply.Success = false
+		// to make the leader know that false because of stale
+		reply.ConflictIndex = -1
+		return
 	} else if len(rf.log) - 1 >= args.PrevLogIndex && rf.log[args.PrevLogIndex].Term == args.PrevlogTerm {
 		// follower contained entry matching prevLogIndex and prevLogTerm
 		reply.Success = true
@@ -396,6 +405,9 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		}
 
 		// increment lastApplied, apply log[lastApplied] to state machine
+		if rf.lastApplied < rf.lastIncludedIndex {
+			rf.lastApplied = rf.lastIncludedIndex
+		}
 		for rf.lastApplied < rf.commitIndex {
 			rf.lastApplied++
 			// take offset into account
@@ -525,6 +537,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	for index := rf.commitIndex + 1; index < len(rf.log); index++ {
 		if rf.log[index].Command == command {
 			rf.log[index].Term = rf.currentTerm
+			rf.persist()
 			return index, rf.currentTerm, true
 		}
 	}
@@ -555,6 +568,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
+	rf.logger.SetOutput(ioutil.Discard)
 }
 
 //
