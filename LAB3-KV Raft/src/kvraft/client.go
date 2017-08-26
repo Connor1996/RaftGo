@@ -108,7 +108,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 		} else if reply.WrongLeader == false {
 			ck.recentLeader = leaderIdx
 			if reply.Err == OK {
-				DPrintf("clinet get reply %v", args)
+				DPrintf("clinet get reply %v from kvserver %v", args, leaderIdx)
 				return
 			} else {
 				DPrintf("[ERROR] %v", reply.Err)

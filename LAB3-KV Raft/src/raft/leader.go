@@ -4,80 +4,6 @@ import (
 	"time"
 )
 
-func (rf *Raft) Commit() {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-
-	if rf.role != LEADER {
-		return
-	}
-
-	index := -1
-	// find the first entry that append in current term
-	for i := len(rf.log) - 1; i >= 0; i-- {
-		if rf.log[i].Term == rf.currentTerm {
-			index = i
-		} else if rf.log[i].Term < rf.currentTerm {
-			break
-		}
-	}
-	// there is no entry appended in current term
-	// unsafe to commit
-	if (index == -1) {
-		return
-	}
-
-	// take offset into account
-	index += rf.lastIncludedIndex + 1
-
-	// find the upper bound where
-	// index > commitIndex, a majority of matchIndex[i] >= N
-	// and log[N].term == currentTerm
-	upperBound := index
-	for upperBound < len(rf.log) + rf.lastIncludedIndex + 1{
-		count := 1 // the number of servers that have given entry(include itself)
-		isSafe := false
-		for i := range rf.peers {
-			if i == rf.me {
-				continue
-			}
-
-			if rf.matchIndex[i] >= upperBound {
-				count++
-				if count > len(rf.peers) / 2 {
-					isSafe = true
-					break
-				}
-			}
-		}
-		if !isSafe {
-			break
-		}
-		upperBound++
-	}
-	upperBound--
-
-	// for situation described in figure 8
-	// there is a current term append, but not committed
-	// so previous term log still shouldn't be committed
-	if upperBound < index {
-		return
-	}
-
-	// update commmit index to upperbound
-	rf.commitIndex = upperBound
-	if rf.lastApplied < rf.lastIncludedIndex {
-		rf.lastApplied = rf.lastIncludedIndex
-	}
-	for rf.lastApplied < rf.commitIndex {
-		rf.lastApplied++
-		// take offset into account
-		rf.logger.Printf("....%v...%v", rf.lastApplied, rf.lastIncludedIndex)
-		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
-		rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
-	}
-
-}
 //
 // leader use AppendEntries RPC to replicate log to all servers
 //
@@ -162,7 +88,7 @@ func (rf *Raft) Sync(server int) {
 	reply := new(AppendEntriesReply)
 	//term := rf.currentTerm
 	//if len(args.Entries) != 0 {
-		rf.logger.Printf("leader %v append log to server %v in term %v", rf.me, server, rf.currentTerm)
+		//rf.logger.Printf("leader %v append log to server %v in term %v", rf.me, server, rf.currentTerm)
 	//}
 	if rf.sendAppendEntries(server, args, reply) == false {
 		if (len(args.Entries) != 0) {
@@ -216,6 +142,82 @@ func (rf *Raft) Sync(server int) {
 	return
 }
 
+
+func (rf *Raft) Commit() {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	if rf.role != LEADER {
+		return
+	}
+
+	index := -1
+	// find the first entry that append in current term
+	for i := len(rf.log) - 1; i >= 0; i-- {
+		if rf.log[i].Term == rf.currentTerm {
+			index = i
+		} else if rf.log[i].Term < rf.currentTerm {
+			break
+		}
+	}
+	// there is no entry appended in current term
+	// unsafe to commit
+	if (index == -1) {
+		return
+	}
+
+	// take offset into account
+	index += rf.lastIncludedIndex + 1
+
+	// find the upper bound where
+	// index > commitIndex, a majority of matchIndex[i] >= N
+	// and log[N].term == currentTerm
+	upperBound := index
+	for upperBound < len(rf.log) + rf.lastIncludedIndex + 1{
+		count := 1 // the number of servers that have given entry(include itself)
+		isSafe := false
+		for i := range rf.peers {
+			if i == rf.me {
+				continue
+			}
+
+			if rf.matchIndex[i] >= upperBound {
+				count++
+				if count > len(rf.peers) / 2 {
+					isSafe = true
+					break
+				}
+			}
+		}
+		if !isSafe {
+			break
+		}
+		upperBound++
+	}
+	upperBound--
+
+	// for situation described in figure 8
+	// there is a current term append, but not committed
+	// so previous term log still shouldn't be committed
+	if upperBound < index {
+		return
+	}
+
+	// update commmit index to upperbound
+	rf.commitIndex = upperBound
+	if rf.lastApplied < rf.lastIncludedIndex {
+		rf.lastApplied = rf.lastIncludedIndex
+	}
+	for rf.lastApplied < rf.commitIndex {
+		rf.lastApplied++
+		// take offset into account
+		rf.logger.Printf("leader %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
+		rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
+		//rf.logger.Printf("leader %v commit over %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
+	}
+
+}
+
 func (rf *Raft) BroadCastHeartBeat() {
 	interval := time.Duration(HEARTBEAT_INTERVAL) * time.Millisecond
 
@@ -253,12 +255,12 @@ func (rf *Raft) DeleteOldEntries(lastIndex int) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
-	if lastIndex < rf.lastIncludedIndex {
+	if lastIndex <= rf.lastIncludedIndex {
 		rf.logger.Printf("server %v already snapshot", rf.me)
 		return
 	}
 
-	rf.logger.Printf("server %v delete old log %v-%v", rf.me, rf.lastIncludedIndex + 1, lastIndex)
+	rf.logger.Printf("server %v delete old log %v-%v, len(log)=%v", rf.me, rf.lastIncludedIndex + 1, lastIndex, len(rf.log))
 
 	// update info
 	rf.lastIncludedTerm = rf.log[lastIndex - rf.lastIncludedIndex - 1].Term

@@ -411,8 +411,9 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		for rf.lastApplied < rf.commitIndex {
 			rf.lastApplied++
 			// take offset into account
-			rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
 			rf.logger.Printf("server %v commit %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
+			rf.applyCh <- ApplyMsg{rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1].Command, false, nil}
+			//rf.logger.Printf("server %v commit over %v: %v", rf.me, rf.lastApplied, rf.log[rf.lastApplied - rf.lastIncludedIndex - 1])
 		}
 	}
 
@@ -483,13 +484,22 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 	rf.applyCh <- ApplyMsg{0, nil, true, args.Data}
 	// if existing log entry has same index and term as snapshot's last included index
 	// retain log entries following it and reply
-	//rf.logger.Printf("...%v....%v", args.LastIncludedIndex, rf.lastIncludedIndex)
-	if args.LastIncludedIndex - rf.lastIncludedIndex - 1 < len(rf.log)  &&
+	rf.logger.Printf("server %v args.lastIncludedIndex:%v, rf.lastInchudedIndex: %v",
+		rf.me, args.LastIncludedIndex, rf.lastIncludedIndex)
+	if args.LastIncludedIndex == rf.lastIncludedIndex && rf.lastIncludedTerm == args.LastIncludedTerm {
+		rf.logger.Printf("server %v install snapshot, retain log:%v-%v", rf.me,
+			args.LastIncludedIndex - rf.lastIncludedIndex, len(rf.log) + rf.lastIncludedIndex)
+		rf.log = rf.log[args.LastIncludedIndex - rf.lastIncludedIndex : ]
+	} else if args.LastIncludedIndex - rf.lastIncludedIndex - 1 < len(rf.log)  &&
 		args.LastIncludedIndex - rf.lastIncludedIndex - 1 >= 0 &&
 		rf.log[args.LastIncludedIndex - rf.lastIncludedIndex - 1].Term == args.LastIncludedTerm {
+		rf.logger.Printf("server %v install snapshot, retain log:%v-%v", rf.me,
+			args.LastIncludedIndex - rf.lastIncludedIndex, len(rf.log) + rf.lastIncludedIndex)
 		rf.log = rf.log[args.LastIncludedIndex - rf.lastIncludedIndex : ]
 	} else {
 		// discard the entrie log
+		rf.logger.Printf("server %v diacard all log, lastIncludedIndex:%v, lastlogIndex:%v",
+			rf.me, args.LastIncludedIndex, len(rf.log) + rf.lastIncludedIndex)
 		rf.log = make([]LogEntry, 0)
 	}
 
@@ -499,6 +509,7 @@ func (rf *Raft) InstallSnapshot(args InstallSnapshotArgs, reply *InstallSnapshot
 	rf.commitIndex = args.LastIncludedIndex
 
 	reply.Success = true
+	rf.persist()
 	return
 }
 

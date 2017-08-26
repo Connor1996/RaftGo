@@ -230,6 +230,7 @@ func (kv *RaftKV) ReceiveApply() {
 
 	for {
 		msg = <-kv.applyCh
+		DPrintf("kvserver %v recevie applyCh %v", kv.me, msg)
 		if msg.UseSnapshot {
 			kv.readPersist(msg.Snapshot)
 			continue
@@ -243,7 +244,7 @@ func (kv *RaftKV) ReceiveApply() {
 
 		kv.mu.Lock()
 		if _, ok := kv.marked[command.RequestId]; ok {
-			//DPrint(kv.me, ": already finish operation", command)
+			DPrintf("kvserver %v: already finish command %v", kv.me, command)
 		} else {
 			if command.Type == "Put" {
 				kv.data[command.Key] = command.Value
@@ -251,13 +252,14 @@ func (kv *RaftKV) ReceiveApply() {
 				kv.data[command.Key] += command.Value
 			}
 
-			kv.marked[command.RequestId] = true
-			kv.persist()
 			if ch, ok := kv.pendingChs[command.RequestId]; ok {
 				DPrintf("kvserver %v finish: %v", kv.me, command)
 				ch <- true
 				delete(kv.pendingChs, command.RequestId)
 			}
+
+			kv.marked[command.RequestId] = true
+			kv.persist()
 		}
 		kv.mu.Unlock()
 
@@ -265,9 +267,9 @@ func (kv *RaftKV) ReceiveApply() {
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
 			DPrintf("server %v making snapshot", kv.me)
 
-			kv.rf.DeleteOldEntries(index)
+			go kv.rf.DeleteOldEntries(index)
 		}
-		DPrintf("server %v recevie loop...", kv.me)
+
 	}
 }
 
