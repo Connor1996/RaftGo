@@ -4,7 +4,10 @@ package shardmaster
 import "raft"
 import "labrpc"
 import "sync"
-import "encoding/gob"
+import (
+	"encoding/gob"
+	"kvraft"
+)
 
 
 type ShardMaster struct {
@@ -14,7 +17,6 @@ type ShardMaster struct {
 	applyCh chan raft.ApplyMsg
 
 	// Your data here.
-
 	configs []Config // indexed by config num
 }
 
@@ -24,8 +26,61 @@ type Op struct {
 }
 
 
-func (sm *ShardMaster) Join(args *JoinArgs, reply *JoinReply) {
+func (sm *ShardMaster) Join(args JoinArgs, reply *JoinReply) {
 	// Your code here.
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	// create a new configuration
+	newGroups := make(map[int][]string)
+	for key, slice := range sm.configs[len(sm.configs) - 1].Groups {
+		newSlice := make([]string, 0)
+		copy(newSlice, slice)
+		newGroups[key] = newSlice
+	}
+	// add new GID -> servers mappings
+	for gid, servers := range args.Servers {
+		newGroups[gid] = servers
+		// create new group
+		raftkv.StartKVServer(sm.)
+	}
+
+	// calculate avg amount of shard in each group
+	avg := NShards / len(newGroups)
+	remain := NShards % len(newGroups)
+	distributeCh := make(chan int, NShards)
+	for gid := range args.Servers {
+		for i := 1; i <= avg; i++ {
+			distributeCh <- gid
+		}
+	}
+	cnt := remain
+	for gid := range args.Servers {
+		if cnt > 0 {
+			distributeCh <- gid
+		}
+		cnt--
+	}
+
+
+	var newShards [NShards]int
+	copy(newShards, sm.configs[len(sm.configs) - 1].Shards)
+	count := make(map[int]int, 0)
+	for shard, gid := range newShards {
+		count[gid]++
+		if count[gid] == avg + 1 {
+			remain--
+		} else {
+			// this shard should be distribute to new group
+			newShards[shard] = <-distributeCh
+			// TO DO
+		}
+	}
+
+	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
+
+
+
 }
 
 func (sm *ShardMaster) Leave(args *LeaveArgs, reply *LeaveReply) {
