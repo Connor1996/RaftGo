@@ -33,6 +33,7 @@ import (
 	"io/ioutil"
 )
 
+
 const (
 	HEARTBEAT_INTERVAL int = 60
 	HEARTBEAT_TIMEOUT_BASE int = 500
@@ -545,13 +546,13 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	// we shouldn't simply the append new log cause old log will be commit and apply as well (namely, apply one request twice)
 	// for the purpose of avoiding Figure 8, we also can not commit the old log when no new log append in current term
 	// so we update the term of the old log, then it will be committed
-	for index := rf.commitIndex + 1; index < len(rf.log); index++ {
-		if rf.log[index].Command == command {
-			rf.log[index].Term = rf.currentTerm
-			rf.persist()
-			return index, rf.currentTerm, true
-		}
-	}
+	//for index := rf.commitIndex + 1; index < len(rf.log); index++ {
+	//	if rf.log[index].Command == command {
+	//		rf.log[index].Term = rf.currentTerm
+	//		rf.persist()
+	//		return index, rf.currentTerm, true
+	//	}
+	//}
 
 	rf.log = append(rf.log, LogEntry{rf.currentTerm, command})
 	rf.persist()
@@ -602,8 +603,7 @@ persister *Persister, applyCh chan ApplyMsg) *Raft {
 
 	// init logger
 	rf.logger = log.New(os.Stdout, "", log.LstdFlags)
-	discard := false
-	if (discard) {
+	if Debug == 0 {
 		rf.logger.SetOutput(ioutil.Discard)
 	}
 	// Your initialization code here.

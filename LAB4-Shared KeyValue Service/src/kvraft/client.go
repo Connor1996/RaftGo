@@ -57,7 +57,7 @@ func (ck *Clerk) Get(key string) string {
 	for {
 		var reply GetReply
 		// You will have to modify this function.
-		//DPrintf(": get %v rpc to server %v", args, leaderIdx)
+		DPrintf(": get %v rpc to server %v", args, leaderIdx)
 		if ck.servers[leaderIdx].Call("RaftKV.Get", &args, &reply) == false {
 			// retry
 			//DPrint("get rpc false")

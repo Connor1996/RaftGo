@@ -47,11 +47,13 @@ func (rf *Raft) Election() {
 				} else if rf.currentTerm == term {
 					if reply.VoteGranted == true {
 						rf.logger.Printf("candidate %v get server %v's vote", rf.me, index)
+						rf.mu.Lock()
 						approveNum++
 						// received from majority of servers: become leader
 						if approveNum == len(rf.peers) / 2 + 1{
 							winSignal <- true
 						}
+						rf.mu.Unlock()
 					} else {
 						rf.mu.Lock()
 						if reply.Term > rf.currentTerm {

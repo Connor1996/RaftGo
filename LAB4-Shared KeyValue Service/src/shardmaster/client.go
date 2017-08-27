@@ -7,7 +7,10 @@ package shardmaster
 import "labrpc"
 import "time"
 import "crypto/rand"
-import "math/big"
+import (
+	"math/big"
+	"log"
+)
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
@@ -32,6 +35,7 @@ func (ck *Clerk) Query(num int) Config {
 	args := &QueryArgs{}
 	// Your code here.
 	args.Num = num
+	args.RequestId = nrand()
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {
@@ -49,6 +53,7 @@ func (ck *Clerk) Join(servers map[int][]string) {
 	args := &JoinArgs{}
 	// Your code here.
 	args.Servers = servers
+	args.RequestId = nrand()
 
 	for {
 		// try each known server.
@@ -56,7 +61,12 @@ func (ck *Clerk) Join(servers map[int][]string) {
 			var reply JoinReply
 			ok := srv.Call("ShardMaster.Join", args, &reply)
 			if ok && reply.WrongLeader == false {
-				return
+				if reply.Err == OK {
+					log.Printf("clinet get reply %v ", args)
+					return
+				} else {
+					log.Printf("[Error] %v", reply.Err)
+				}
 			}
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -67,6 +77,7 @@ func (ck *Clerk) Leave(gids []int) {
 	args := &LeaveArgs{}
 	// Your code here.
 	args.GIDs = gids
+	args.RequestId = nrand()
 
 	for {
 		// try each known server.
@@ -86,6 +97,7 @@ func (ck *Clerk) Move(shard int, gid int) {
 	// Your code here.
 	args.Shard = shard
 	args.GID = gid
+	args.RequestId = nrand()
 
 	for {
 		// try each known server.
