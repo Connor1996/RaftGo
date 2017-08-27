@@ -39,12 +39,6 @@ type Op struct {
 	RequestId   int64
 }
 
-type PendingOps struct {
-	request Op
-	channel chan bool
-}
-
-
 func (sm *ShardMaster) Join(args *JoinArgs, reply *JoinReply) {
 	reply.WrongLeader, reply.Err = sm.AppendOp(Op{
 		Type: "Join",

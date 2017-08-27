@@ -30,11 +30,6 @@ type Op struct {
 	RequestId   int64
 }
 
-type PendingOps struct {
-	request Op
-	channel chan bool
-}
-
 type RaftKV struct {
 	mu      sync.Mutex
 	me      int
