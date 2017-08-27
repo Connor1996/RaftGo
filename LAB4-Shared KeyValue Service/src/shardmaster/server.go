@@ -238,51 +238,48 @@ func (sm *ShardMaster) ApplyJoin(servers map[int][]string) {
 		newGroups[key] = slice
 	}
 	// add new GID -> servers mappings
-	for gid, servers := range servers {
-		newGroups[gid] = servers
+	for gid, server := range servers {
+		newGroups[gid] = server
 	}
 	// calculate avg amount of shard in each group
 	avg := NShards / len(newGroups)
 	remain := NShards % len(newGroups)
-	distributeCh := make(chan int, NShards)
+	var N int
+	if NShards > len(newGroups) {
+		N = NShards
+	} else {
+		N = len(newGroups)
+	}
+	distributeCh := make(chan int, N)
+
+	// for the case when NShards < len(group)
+	if avg == 0 {
+		avg = 1
+		remain = 0
+	}
 
 	// the assignment of array is copy not refer
 	newShards := sm.configs[len(sm.configs) - 1].Shards
 	count := make(map[int]int, 0)
+	for gid := range newGroups {
+		count[gid] = 0
+	}
 	for _, gid := range newShards {
 		count[gid]++
 	}
+
 	for gid, sum := range count {
-		if sum < avg {
-			for i := 1; i <= avg - sum; i++ {
-				distributeCh <- gid
-			}
-		}
-	}
-	for gid := range servers {
-		for i := 1; i <= avg; i++ {
+		for i := 1; i <= avg - sum; i++ {
 			distributeCh <- gid
 		}
 	}
 
 	cnt := remain
 	for gid, sum := range count {
-		if sum < avg {
-			if cnt > 0 {
-				distributeCh <- gid
-			} else {
-				break
-			}
+		if cnt > 0 && avg >= sum {
+			distributeCh <- gid
 			cnt--
 		}
-	}
-	for gid := range servers {
-		if cnt > 0 {
-			distributeCh <- gid
-		} else {
-			break
-		}
-		cnt--
 	}
 
 	count = make(map[int]int, 0)
@@ -301,6 +298,8 @@ func (sm *ShardMaster) ApplyJoin(servers map[int][]string) {
 	}
 	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
 	sm.logger.Printf("join%v---old config: %v\n new config: %v",servers, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
+
+	sm.Check()
 	return
 }
 
@@ -322,7 +321,20 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 	// calculate avg amount of shard in each group
 	avg := NShards / len(newGroups)
 	remain := NShards % len(newGroups)
-	distributeCh := make(chan int, NShards)
+
+	// for the case when NShards < len(group)
+	if avg == 0 {
+		avg = 1
+		remain = 0
+	}
+
+	var N int
+	if NShards > len(newGroups) {
+		N = NShards
+	} else {
+		N = len(newGroups)
+	}
+	distributeCh := make(chan int, N)
 
 	// the assignment of array is copy not refer
 	newShards := sm.configs[len(sm.configs) - 1].Shards
@@ -336,11 +348,14 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 			count[gid]++
 		}
 	}
-	for gid, cnt := range count {
-		for i := 1; i <= avg - cnt; i++ {
+	for gid := range newGroups {
+		for i := 1; i <= avg - count[gid]; i++ {
 			distributeCh <- gid
 		}
-		if remain > 0 {
+	}
+
+	for gid, value := range count {
+		if remain > 0 && avg >= value {
 			distributeCh <- gid
 			remain--
 		}
@@ -353,9 +368,53 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 	}
 	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
 	sm.logger.Printf("leave%v---old config: %v\n new config: %v", gids, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
-
+	sm.Check()
 	return
 }
+
+func (sm *ShardMaster) Check() {
+	config := sm.configs[len(sm.configs) - 1]
+
+	avg := NShards / len(config.Groups)
+	remain := NShards % len(config.Groups)
+
+	count := make(map[int]int)
+	max := 0
+	min := NShards
+	for _, gid := range config.Shards {
+		count[gid]++
+	}
+	for _, value := range count {
+		if value > max {
+			max = value
+		}
+		if value < min {
+			min = value
+		}
+	}
+
+	ok := true
+	if remain == 0 {
+		if max != min {
+			ok = false
+		}
+	} else if avg == 0 {
+		if !(max == min && min == 1) {
+			ok = false
+		}
+	} else {
+		if min != avg {
+			ok = false
+		}
+		if max != min + 1 {
+			ok = false
+		}
+	}
+	if !ok {
+		sm.logger.Fatal("[ERROR] wrong change")
+	}
+}
+
 
 func (sm *ShardMaster) ApplyMove(shard int, gid int) {
 	sm.mu.Lock()
