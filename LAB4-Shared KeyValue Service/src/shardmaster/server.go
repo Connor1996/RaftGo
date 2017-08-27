@@ -8,6 +8,8 @@ import (
 	"encoding/gob"
 	"time"
 	"log"
+	"os"
+	"io/ioutil"
 )
 
 
@@ -21,6 +23,8 @@ type ShardMaster struct {
 	configs []Config // indexed by config num
 	pendingChs  map[int64]chan bool
 	marked      map[int64]bool
+
+	logger      *log.Logger
 }
 
 
@@ -111,9 +115,11 @@ func (sm *ShardMaster) AppendOp(op Op) (wrongLeader bool, err Err){
 		delete(sm.pendingChs, op.RequestId)
 		sm.mu.Unlock()
 		wrongLeader = true
+		sm.logger.SetOutput(ioutil.Discard)
 		return
 	} else {
 		wrongLeader = false
+		sm.logger.SetOutput(os.Stdout)
 	}
 
 
@@ -125,7 +131,7 @@ func (sm *ShardMaster) AppendOp(op Op) (wrongLeader bool, err Err){
 			} else {
 				err = "error"
 			}
-			log.Printf("smserver %v return request: %v", sm.me, op)
+			sm.logger.Printf("smserver %v return request: %v", sm.me, op)
 			return
 		case <-time.After(time.Duration(time.Second)):
 		// handle the case in which a leader has called Start() for a client RPC,
@@ -165,6 +171,9 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 	sm := new(ShardMaster)
 	sm.me = me
 
+	// init logger
+	sm.logger = log.New(os.Stdout, "", log.LstdFlags)
+
 	sm.configs = make([]Config, 1)
 	sm.configs[0].Groups = map[int][]string{}
 
@@ -184,7 +193,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 func (sm *ShardMaster) ReceiveApply() {
 	for {
 		msg := <-sm.applyCh
-		log.Printf("smserver %v: receive applyCh %v", sm.me, msg)
+		sm.logger.Printf("smserver %v: receive applyCh %v", sm.me, msg)
 		// ignore the first fake log
 		if msg.Command == nil {
 			continue;
@@ -193,7 +202,7 @@ func (sm *ShardMaster) ReceiveApply() {
 
 
 		if _, ok := sm.marked[command.RequestId]; ok {
-			log.Printf("smserver %v: already finish command %v", sm.me, command)
+			sm.logger.Printf("smserver %v: already finish command %v", sm.me, command)
 		} else {
 			if command.Type == "Join" {
 				sm.ApplyJoin(command.Servers)
@@ -206,7 +215,7 @@ func (sm *ShardMaster) ReceiveApply() {
 			}
 			sm.mu.Lock()
 			if ch, ok := sm.pendingChs[command.RequestId]; ok {
-				log.Printf("smserver %v finish: %v", sm.me, command)
+				sm.logger.Printf("smserver %v finish: %v", sm.me, command)
 				ch <- true
 				delete(sm.pendingChs, command.RequestId)
 			}
@@ -291,7 +300,7 @@ func (sm *ShardMaster) ApplyJoin(servers map[int][]string) {
 		}
 	}
 	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
-	log.Printf("join%v---old config: %v\n new config: %v",servers, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
+	sm.logger.Printf("join%v---old config: %v\n new config: %v",servers, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
 	return
 }
 
@@ -299,7 +308,7 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	log.Print(sm.configs[len(sm.configs) - 1])
+	sm.logger.Print(sm.configs[len(sm.configs) - 1])
 	// create a new configuration
 	newGroups := make(map[int][]string)
 	for key, slice := range sm.configs[len(sm.configs) - 1].Groups {
@@ -343,7 +352,7 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 		}
 	}
 	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
-	log.Printf("leave%v---old config: %v\n new config: %v", gids, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
+	sm.logger.Printf("leave%v---old config: %v\n new config: %v", gids, sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
 
 	return
 }
@@ -366,7 +375,7 @@ func (sm *ShardMaster) ApplyMove(shard int, gid int) {
 	newShards[shard] = gid
 
 	sm.configs = append(sm.configs, Config{len(sm.configs), newShards, newGroups})
-	log.Printf("Move---old config: %v, new config: %v", sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
+	sm.logger.Printf("Move---old config: %v, new config: %v", sm.configs[len(sm.configs) - 2], sm.configs[len(sm.configs) - 1])
 
 	return
 }
