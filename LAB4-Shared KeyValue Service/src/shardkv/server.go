@@ -43,10 +43,11 @@ type ShardKV struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
-	mck          shardmaster.Clerk
+	mck          *shardmaster.Clerk
 	pendingChs  map[int64]chan bool
 	marked      map[int64]bool
 	data        map[string]string // linearizable data
+	shards      map[int]bool // the list of shards which server is responsible for
 
 	persister   *raft.Persister
 }
@@ -55,6 +56,14 @@ type ShardKV struct {
 func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
 	kv.mu.Lock()
+
+	shard := key2shard(args.Key)
+	if have, ok := kv.shards[shard]; have && ok {
+		reply.Err = ErrWrongGroup
+		kv.mu.Unlock()
+		return
+	}
+
 	if _, ok := kv.marked[args.RequestId]; ok{
 		reply.Value = kv.data[args.Key]
 		reply.WrongLeader = false
@@ -119,6 +128,14 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
 	kv.mu.Lock()
+
+	shard := key2shard(args.Key)
+	if have, ok := kv.shards[shard]; have && ok {
+		reply.Err = ErrWrongGroup
+		kv.mu.Unlock()
+		return
+	}
+
 	if _, ok :=kv.marked[args.RequestId]; ok {
 		reply.WrongLeader = false
 		reply.Err = OK
@@ -232,12 +249,37 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	kv.data = make(map[string]string)
 	kv.pendingChs = make(map[int64]chan bool)
 	kv.marked = make(map[int64]bool)
+	kv.shards = make(map[int]bool)
 
 	kv.readPersist(kv.persister.ReadSnapshot())
 
 	go kv.ReceiveApply()
+	go kv.DetectChange()
 
 	return kv
+}
+
+func (kv *ShardKV) DetectChange() {
+	for {
+		config := kv.mck.Query(-1)
+		kv.mu.Lock()
+		for shard, gid := range config.Shards {
+			if gid == kv.me && kv.shards[shard] == false {
+				// need recevie the shard from $gid
+			} else if gid != kv.me && kv.shards[shard] == true {
+				// need send the shard to $gid
+			}
+
+			if gid == kv.me {
+				kv.shards[gid] = true
+			} else {
+				kv.shards[gid] = false
+			}
+		}
+		kv.mu.Unlock()
+
+		time.After(time.Duration(100 * time.Millisecond))
+	}
 }
 
 func (kv *ShardKV) ReceiveApply() {
@@ -274,14 +316,14 @@ func (kv *ShardKV) ReceiveApply() {
 			}
 
 			kv.marked[command.RequestId] = true
-			kv.persist()
+
 		}
 		kv.mu.Unlock()
 
 		// check state size to make snapshot
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
 			DPrintf("server %v making snapshot", kv.me)
-
+			kv.persist()
 			go kv.rf.DeleteOldEntries(index)
 		}
 
