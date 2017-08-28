@@ -254,14 +254,14 @@ func (kv *RaftKV) ReceiveApply() {
 			}
 
 			kv.marked[command.RequestId] = true
-			kv.persist()
+
 		}
 		kv.mu.Unlock()
 
 		// check state size to make snapshot
 		if kv.maxraftstate > 0 && kv.persister.RaftStateSize() > kv.maxraftstate {
 			DPrintf("server %v making snapshot", kv.me)
-
+			kv.persist()
 			go kv.rf.DeleteOldEntries(index)
 		}
 

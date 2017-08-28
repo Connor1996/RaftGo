@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 )
 
+const Debug = 0
+
 
 type ShardMaster struct {
 	mu      sync.Mutex
@@ -79,6 +81,9 @@ func (sm *ShardMaster) Query(args *QueryArgs, reply *QueryReply) {
 		RequestId: args.RequestId,
 	})
 	num := args.Num
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 	if num == -1 || num >= len(sm.configs) {
 		reply.Config = sm.configs[len(sm.configs) - 1]
 	} else {
@@ -167,6 +172,9 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 
 	// init logger
 	sm.logger = log.New(os.Stdout, "", log.LstdFlags)
+	if Debug == 0 {
+		sm.logger.SetOutput(ioutil.Discard)
+	}
 
 	sm.configs = make([]Config, 1)
 	sm.configs[0].Groups = map[int][]string{}
@@ -366,6 +374,7 @@ func (sm *ShardMaster) ApplyLeave(gids []int) {
 	return
 }
 
+// for debug
 func (sm *ShardMaster) Check() {
 	config := sm.configs[len(sm.configs) - 1]
 

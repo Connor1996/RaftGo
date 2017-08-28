@@ -8,13 +8,11 @@ import (
 // leader use AppendEntries RPC to replicate log to all servers
 //
 func (rf *Raft) Sync(server int) {
-	rf.locker[server].Lock()
 	rf.mu.Lock()
 
 	if rf.role != LEADER {
 		rf.logger.Printf("server %v is not leader any more ", rf.me)
 		rf.mu.Unlock()
-		rf.locker[server].Unlock()
 		return
 	}
 
@@ -22,6 +20,7 @@ func (rf *Raft) Sync(server int) {
 	lastLogIndex := len(rf.log) + rf.lastIncludedIndex
 	var entries []LogEntry
 
+	rf.locker[server].Lock()
 	// if last log index >= nextIndex
 	// send AppendEntries RPC with log entries starting at nextIndex
 	if lastLogIndex >= rf.nextIndex[server]  {
@@ -55,8 +54,8 @@ func (rf *Raft) Sync(server int) {
 					rf.nextIndex[server] = rf.matchIndex[server] + 1
 				}
 			}
-			rf.mu.Unlock()
 			rf.locker[server].Unlock()
+			rf.mu.Unlock()
 			return
 		} else {
 			entries = rf.log[rf.nextIndex[server] - rf.lastIncludedIndex - 1: ]
@@ -82,8 +81,8 @@ func (rf *Raft) Sync(server int) {
 		//rf.logger.Printf("~~~~~~~~~%v %v len:%v", args.PrevLogIndex, rf.lastIncludedIndex, len(rf.log))
 		args.PrevlogTerm = rf.log[args.PrevLogIndex - rf.lastIncludedIndex - 1].Term
 	}
-	rf.mu.Unlock()
 	rf.locker[server].Unlock()
+	rf.mu.Unlock()
 
 	reply := new(AppendEntriesReply)
 	//term := rf.currentTerm
@@ -117,7 +116,6 @@ func (rf *Raft) Sync(server int) {
 	}
 
 	rf.locker[server].Lock()
-	defer rf.locker[server].Unlock()
 
 	if reply.Success {
 		// no need to update
@@ -137,6 +135,7 @@ func (rf *Raft) Sync(server int) {
 			// fail because of stale
 		}
 	}
+	rf.locker[server].Unlock()
 
 	rf.Commit()
 	return
@@ -181,13 +180,16 @@ func (rf *Raft) Commit() {
 				continue
 			}
 
+			rf.locker[i].Lock()
 			if rf.matchIndex[i] >= upperBound {
 				count++
 				if count > len(rf.peers) / 2 {
 					isSafe = true
+					rf.locker[i].Unlock()
 					break
 				}
 			}
+			rf.locker[i].Unlock()
 		}
 		if !isSafe {
 			break

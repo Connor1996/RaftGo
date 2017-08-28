@@ -565,7 +565,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		go rf.Sync(i)
 	}
 	// take offset into account
-	log.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm)
+	rf.logger.Printf("%v start in leader %v, index %v, term %v\n", command, rf.me, len(rf.log) + rf.lastIncludedIndex, rf.currentTerm)
 
 	return len(rf.log) - 1, rf.currentTerm, true
 }
