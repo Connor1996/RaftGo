@@ -266,20 +266,50 @@ func (kv *ShardKV) DetectChange() {
 		for shard, gid := range config.Shards {
 			if gid == kv.me && kv.shards[shard] == false {
 				// need recevie the shard from $gid
+				// If a replica group gains a shard,
+				// it needs to wait for the previous owner to send over the old shard data
+				// before accepting requests for that shard.
+				// TO DO
 			} else if gid != kv.me && kv.shards[shard] == true {
 				// need send the shard to $gid
+				// If a replica group loses a shard,
+				// it must stop serving requests to keys in that shard immediately,
+				kv.shards[shard] = false
+				// and start migrating the data for that shard to the replica group that is taking over ownership
+				kv.DoMigration(shard, config.Groups[gid])
 			}
 
-			if gid == kv.me {
-				kv.shards[gid] = true
-			} else {
-				kv.shards[gid] = false
-			}
+			// Make sure that all servers in a replica group do the migration at the same time
+			// so that they all either accept or reject concurrent client requests.
+			// TO DO
 		}
 		kv.mu.Unlock()
 
 		time.After(time.Duration(100 * time.Millisecond))
 	}
+}
+
+// send shard number $shard to group $gid
+func (kv *ShardKV) DoMigration(shard int, serverNames []string) {
+	// TO DO
+
+	for _, name := range serverNames {
+		args := DoMigrationArgs {
+
+		}
+		var reply DoMigrationReply
+		kv.sendDoMigration(name, args, reply)
+	}
+}
+
+
+func (kv *ShardKV) sendDoMigration(serverName string, args DoMigrationArgs, reply *DoMigrationReply) {
+	ok := kv.make_end(serverName).Call("ShardKV.DoMigration", args, reply)
+	return ok
+}
+
+func (kv *ShardKV) MigrateShard() {
+	// TO DO
 }
 
 func (kv *ShardKV) ReceiveApply() {

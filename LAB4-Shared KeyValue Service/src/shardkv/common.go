@@ -46,3 +46,11 @@ type GetReply struct {
 	Err         Err
 	Value       string
 }
+
+type DoMigrationArgs struct {
+
+}
+
+type DoMigrationReply struct {
+
+}
